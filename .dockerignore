@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+LICENSE
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+
+# IDE/Editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Test files
+*_test.go
+test-data/
+
+# CI/CD (not needed in image)
+.github/
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
