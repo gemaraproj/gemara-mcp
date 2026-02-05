@@ -16,7 +16,7 @@ import (
 
 func TestValidateGemaraArtifact(t *testing.T) {
 	// Load test data
-	testDataDir := filepath.Join("test-data")
+	testDataDir := filepath.Join("testdata")
 	validControlCatalogPath := filepath.Join(testDataDir, "good-ccc.yaml")
 	validControlCatalogContent, err := os.ReadFile(validControlCatalogPath)
 	require.NoError(t, err, "should be able to read test data file")

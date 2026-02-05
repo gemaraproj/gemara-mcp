@@ -56,10 +56,7 @@ The server provides read-only information about Gemara artifacts in the workspac
 
 - **get_lexicon**: Retrieve Gemara lexicon entries
 - **validate_gemara_artifact**: Validate YAML artifacts against Gemara schema definitions
-
-## Available Resources
-
-- **gemara://lexicon**: Access the Gemara lexicon as a resource
+- **get_schema_docs**: Retrieve schema documentation for the Gemara CUE module
 
 ### Building Docker Image
 

@@ -68,13 +68,11 @@ func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input I
 		definition = "#" + definition
 	}
 
-	// Create registry for module access
 	reg, err := modconfig.NewRegistry(nil)
 	if err != nil {
 		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to create CUE registry: %w", err)
 	}
 
-	// Load the Gemara module from registry
 	// Pass the module path as an argument to load it from the registry
 	buildInstances := load.Instances([]string{gemaraModulePath}, &load.Config{
 		Registry: reg,
@@ -88,21 +86,18 @@ func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input I
 		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to load module: %w", err)
 	}
 
-	// Build the schema instance
 	cueCtx := cuecontext.New()
 	schema := cueCtx.BuildInstance(buildInstances[0])
 	if err := schema.Err(); err != nil {
 		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to build schema: %w", err)
 	}
 
-	// Look up the definition in the schema
 	entrypointPath := cue.ParsePath(definition)
 	entrypoint := schema.LookupPath(entrypointPath)
 	if !entrypoint.Exists() {
 		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("definition %s not found in schema", definition)
 	}
 
-	// Extract YAML content to CUE
 	yamlFile, err := yaml.Extract("artifact.yaml", input.ArtifactContent)
 	if err != nil {
 		// Invalid YAML should result in validation failure, not a function error
@@ -114,7 +109,6 @@ func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input I
 		return nil, output, nil
 	}
 
-	// Build the data instance from YAML
 	data := cueCtx.BuildFile(yamlFile)
 	if err := data.Err(); err != nil {
 		// Data build errors should result in validation failure
@@ -126,10 +120,8 @@ func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input I
 		return nil, output, nil
 	}
 
-	// Unify schema definition with data
 	unified := entrypoint.Unify(data)
 
-	// Validate with concrete values required
 	if err := unified.Validate(cue.Concrete(true)); err != nil {
 		errorOutput := err.Error()
 		errorLines := strings.Split(strings.TrimSpace(errorOutput), "\n")
