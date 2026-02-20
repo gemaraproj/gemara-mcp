@@ -42,7 +42,7 @@ func (f *HTTPFetcher) URL() string {
 	return f.fetchURL
 }
 
-func (f *HTTPFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
+func (f *HTTPFetcher) Fetch(ctx context.Context) (_ []byte, _ string, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.fetchURL, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("creating request: %w", err)
@@ -52,7 +52,11 @@ func (f *HTTPFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf(

@@ -86,7 +86,7 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		shouldRetry, retryErr := isRetryable(resp, respErr)
 		if retryErr != nil {
 			if respErr == nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 			return nil, retryErr
 		}
@@ -106,7 +106,7 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		if respErr == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		wait := t.wait

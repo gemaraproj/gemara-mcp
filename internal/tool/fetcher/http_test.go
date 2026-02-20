@@ -144,7 +144,7 @@ func TestRetryTransport_NoRetryNeeded(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, int32(1), calls.Load(), "should only make one request")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 func TestRetryTransport_RetriesThenSucceeds(t *testing.T) {
@@ -167,7 +167,7 @@ func TestRetryTransport_RetriesThenSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, int32(3), calls.Load(), "should retry twice then succeed")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 func TestRetryTransport_ExhaustsRetries(t *testing.T) {
@@ -186,7 +186,7 @@ func TestRetryTransport_ExhaustsRetries(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode,
 		"should return last response after exhausting retries")
 	assert.Equal(t, int32(3), calls.Load(), "initial + 2 retries")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 func TestRetryTransport_RespectsContextCancellation(t *testing.T) {
