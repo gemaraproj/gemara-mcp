@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
+
+// defaultMaxResponseBytes limits response body reads.
+var defaultMaxResponseBytes int64 = 4 * 1024 * 1024 // 4 MiB
 
 // Fetcher is a generic interface for fetching raw data from a source.
 type Fetcher interface {
@@ -18,44 +20,63 @@ type Fetcher interface {
 
 // HTTPFetcher fetches data from an HTTP URL.
 type HTTPFetcher struct {
-	url     string
-	timeout time.Duration
+	fetchURL string
+
+	// MaxResponseBytes limits the number of response body bytes read.
+	// If zero or negative, defaultMaxResponseBytes is used.
+	MaxResponseBytes int64
 }
 
-// NewHTTPFetcher creates a new HTTP fetcher.
-func NewHTTPFetcher(url string, timeout time.Duration) *HTTPFetcher {
-	return &HTTPFetcher{
-		url:     url,
-		timeout: timeout,
+// NewHTTPFetcher creates an HTTP fetcher by building a URL from the
+// trusted URLBuilder and the given version.
+func NewHTTPFetcher(builder *URLBuilder, version string) (*HTTPFetcher, error) {
+	fetchURL, err := builder.Build(version)
+	if err != nil {
+		return nil, fmt.Errorf("building fetch URL: %w", err)
 	}
+	return &HTTPFetcher{fetchURL: fetchURL}, nil
+}
+
+// URL returns the resolved fetch URL.
+func (f *HTTPFetcher) URL() string {
+	return f.fetchURL
 }
 
 func (f *HTTPFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
-	client := &http.Client{
-		Timeout: f.timeout,
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.fetchURL, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.url, nil)
+	resp, err := defaultClient.Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to create request: %w", err)
+		return nil, "", fmt.Errorf("executing request: %w", err)
 	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to fetch data: %w", err)
-	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, "", fmt.Errorf(
+			"%s %q: response status code %d: %s",
+			resp.Request.Method, resp.Request.URL,
+			resp.StatusCode, http.StatusText(resp.StatusCode),
+		)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(limitReader(resp.Body, f.MaxResponseBytes))
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to read response body: %w", err)
+		return nil, "", fmt.Errorf("reading response body: %w", err)
 	}
 
-	return body, f.url, nil
+	return body, f.fetchURL, nil
+}
+
+// limitReader returns a Reader that stops after n bytes.
+// If n is zero or negative, defaultMaxResponseBytes is used.
+func limitReader(r io.Reader, n int64) io.Reader {
+	if n <= 0 {
+		n = defaultMaxResponseBytes
+	}
+	return io.LimitReader(r, n)
 }
 
 // CachedFetcher wraps a Fetcher with caching behavior.
