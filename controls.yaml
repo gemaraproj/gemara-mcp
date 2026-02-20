@@ -1,0 +1,338 @@
+metadata:
+  id: GEMARA.MCP
+  description: >-
+    Control catalog for the Gemara MCP Server, defining security controls
+    and assessment requirements that mitigate threats identified in the
+    GEMARA.MCP threat catalog.
+  version: 1.0.0
+  author:
+    id: jpower432
+    name: Jenn Power
+    type: Software-Assisted
+  mapping-references:
+    - id: CCC.Core
+      title: Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
+      description: >-
+        Foundational repository of reusable security controls, capabilities,
+        and threat models from FINOS Common Cloud Controls.
+    - id: GEMARA.MCP
+      title: Gemara MCP Server Security Threat Catalog
+      version: 1.0.0
+      url: file://threats.yaml
+      description: >-
+        Threat catalog for the Gemara MCP Server identifying capabilities
+        and threats specific to this component.
+    - id: OSPS
+      title: Open Source Project Security Baseline
+      version: 2026.02.19
+      url: https://baseline.openssf.org/versions/2026-02-19.html
+      description: >-
+        Security criteria for open source projects organized by maturity
+        level and category.
+  applicability-categories:
+    - id: local
+      title: Local
+      description: Server runs as a local process for a single user via stdio
+    - id: shared
+      title: Shared
+      description: Server runs as a shared service accessible by multiple clients over HTTP
+title: Gemara MCP Server Security Control Catalog
+families:
+  - id: input-validation
+    title: Input Validation
+    description: >-
+      Controls governing validation and sanitization of all external input
+      including YAML content, prompt arguments, and URL parameters.
+  - id: supply-chain
+    title: Supply Chain Integrity
+    description: >-
+      Controls ensuring the integrity of remotely fetched content and
+      compiled dependencies throughout the build and runtime lifecycle.
+  - id: transport-security
+    title: Transport Security
+    description: >-
+      Controls protecting data in transit and restricting unauthorized
+      access to the MCP server interface.
+  - id: resource-management
+    title: Resource Management
+    description: >-
+      Controls preventing resource exhaustion and ensuring freshness
+      of cached data.
+imported-controls:
+  - reference-id: OSPS
+    entries:
+      - reference-id: OSPS-BR-01
+        remarks: Pipeline input sanitization and credential isolation for CI/CD
+      - reference-id: OSPS-BR-05
+        remarks: Standardized dependency management via go.mod and go.sum checksum verification
+      - reference-id: OSPS-BR-06
+        remarks: Signed releases with cryptographic hashes for distribution integrity
+      - reference-id: OSPS-QA-02
+        remarks: Dependency list via go.mod and SBOM generation for compiled release assets
+controls:
+  - id: GEMARA.MCP.C01
+    family: input-validation
+    title: Validate YAML Input Size and Structure
+    objective: >-
+      Reduce the risk of denial of service caused by crafted YAML payloads
+      such as billion laughs or deeply nested structures submitted to the
+      schema validation tool.
+    threat-mappings:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR01
+            strength: 10
+            remarks: Directly mitigates malicious YAML exploitation of schema validation
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SI-10
+            strength: 8
+            remarks: Information Input Validation
+    assessment-requirements:
+      - id: GEMARA.MCP.C01.TR01
+        text: >-
+          When YAML content is submitted for validation, the server MUST
+          reject payloads exceeding a configured maximum size in bytes.
+        applicability:
+          - shared
+      - id: GEMARA.MCP.C01.TR02
+        text: >-
+          When YAML content is parsed, the server MUST enforce a maximum
+          recursion depth to prevent stack exhaustion from deeply nested
+          structures.
+        applicability:
+          - shared
+  - id: GEMARA.MCP.C02
+    family: input-validation
+    title: Sanitize Prompt Template Arguments
+    objective: >-
+      Reduce the risk of prompt injection by ensuring user-provided arguments
+      cannot alter the intended behavior of wizard message templates or
+      introduce malicious content into LLM interactions.
+    threat-mappings:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR03
+            strength: 10
+            remarks: Directly mitigates prompt template injection via arguments
+    guideline-mappings:
+      - reference-id: OSPS
+        entries:
+          - reference-id: OSPS-BR-01
+            strength: 6
+            remarks: Analogous input sanitization applied to prompt arguments
+    assessment-requirements:
+      - id: GEMARA.MCP.C02.TR01
+        text: >-
+          When a prompt argument is received, the server MUST validate it
+          against a strict allowlist pattern before template substitution.
+        applicability:
+          - local
+          - shared
+      - id: GEMARA.MCP.C02.TR02
+        text: >-
+          When a prompt argument exceeds the maximum permitted length, the
+          server MUST reject the request with an error.
+        applicability:
+          - local
+          - shared
+  - id: GEMARA.MCP.C03
+    family: input-validation
+    title: Validate Version Strings and URL Construction
+    objective: >-
+      Reduce the risk of server-side request forgery by ensuring user-provided
+      version strings cannot alter the target host or path of constructed
+      fetch URLs.
+    threat-mappings:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR05
+            strength: 10
+            remarks: Directly mitigates version string URL manipulation
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SI-10
+            strength: 8
+            remarks: Information Input Validation
+    assessment-requirements:
+      - id: GEMARA.MCP.C03.TR01
+        text: >-
+          When a version string is provided, the server MUST validate it
+          against a strict semver or "latest" pattern before URL construction.
+        applicability:
+          - local
+          - shared
+      - id: GEMARA.MCP.C03.TR02
+        text: >-
+          When a fetch URL is constructed, the server MUST verify the
+          resulting URL scheme and host match the controlled base URL before
+          issuing the request.
+        applicability:
+          - local
+          - shared
+  - id: GEMARA.MCP.C04
+    family: supply-chain
+    title: Verify Integrity of Fetched Content
+    objective: >-
+      Reduce the risk of using tampered schemas or lexicon data by verifying
+      the integrity of content fetched from external registries at runtime.
+    threat-mappings:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR02
+            strength: 8
+            remarks: Mitigates use of compromised schema or lexicon from upstream sources
+          - reference-id: GEMARA.MCP.THR04
+            strength: 7
+            remarks: Reduces impact of cache poisoning by validating content before caching
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SI-7
+            strength: 8
+            remarks: Software, Firmware, and Information Integrity
+    assessment-requirements:
+      - id: GEMARA.MCP.C04.TR01
+        text: >-
+          When content is fetched from an external source, the server SHOULD
+          verify the response against a known checksum or signature before use.
+        applicability:
+          - local
+          - shared
+      - id: GEMARA.MCP.C04.TR02
+        text: >-
+          When cached content is served, the server SHOULD log the cache
+          source identifier and TTL remaining to support auditability.
+        applicability:
+          - shared
+  - id: GEMARA.MCP.C05
+    family: transport-security
+    title: Enforce Encryption for Outbound Requests
+    objective: >-
+      Reduce the risk of data interception by ensuring all outbound HTTP
+      requests use TLS encryption exclusively.
+    threat-mappings:
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.TH02
+            strength: 10
+            remarks: Directly mitigates data interception in transit
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SC-8
+            strength: 8
+            remarks: Transmission Confidentiality and Integrity
+      - reference-id: OSPS
+        entries:
+          - reference-id: OSPS-BR-03
+            strength: 7
+            remarks: Use encrypted channels for development and release activity
+    assessment-requirements:
+      - id: GEMARA.MCP.C05.TR01
+        text: >-
+          When a fetch URL is constructed, the server MUST reject any URL
+          that does not use the HTTPS scheme.
+        applicability:
+          - local
+          - shared
+  - id: GEMARA.MCP.C06
+    family: transport-security
+    title: Authenticate HTTP Transport Clients
+    objective: >-
+      Reduce the risk of unauthorized access when the server is exposed as a
+      shared HTTP service by requiring client authentication for all requests.
+    threat-mappings:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR07
+            strength: 10
+            remarks: Directly mitigates unauthorized access via HTTP transport
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: IA-2
+            strength: 8
+            remarks: Identification and Authentication
+    assessment-requirements:
+      - id: GEMARA.MCP.C06.TR01
+        text: >-
+          When the server is running with HTTP transport, it MUST require
+          authentication for all incoming requests.
+        applicability:
+          - shared
+      - id: GEMARA.MCP.C06.TR02
+        text: >-
+          When the server is running with HTTP transport, it MUST reject
+          unauthenticated requests with an appropriate error status.
+        applicability:
+          - shared
+  - id: GEMARA.MCP.C07
+    family: resource-management
+    title: Limit Response Body Size
+    objective: >-
+      Reduce the risk of memory exhaustion from oversized upstream responses
+      by enforcing a maximum read limit on all HTTP response bodies.
+    threat-mappings:
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.TH12
+            strength: 8
+            remarks: Mitigates resource exhaustion from oversized responses
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SC-5
+            strength: 7
+            remarks: Denial-of-Service Protection
+    assessment-requirements:
+      - id: GEMARA.MCP.C07.TR01
+        text: >-
+          When reading an HTTP response body, the server MUST enforce a
+          maximum byte limit and discard data beyond that limit.
+        applicability:
+          - local
+          - shared
+  - id: GEMARA.MCP.C08
+    family: resource-management
+    title: Enforce Cache Freshness
+    objective: >-
+      Reduce the risk of serving stale or outdated schemas and lexicon data
+      by enforcing time-based cache expiration and providing a manual refresh
+      mechanism.
+    threat-mappings:
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.TH14
+            strength: 8
+            remarks: Mitigates use of older resource versions via stale cache
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.THR04
+            strength: 6
+            remarks: Limits exposure window for poisoned cached data
+    guideline-mappings:
+      - reference-id: 800-161
+        entries:
+          - reference-id: SI-7
+            strength: 5
+            remarks: Software, Firmware, and Information Integrity
+    assessment-requirements:
+      - id: GEMARA.MCP.C08.TR01
+        text: >-
+          When cached data exceeds the configured TTL, the server MUST
+          discard it and fetch fresh data on the next request.
+        applicability:
+          - local
+          - shared
+      - id: GEMARA.MCP.C08.TR02
+        text: >-
+          When a user requests a cache refresh, the server MUST bypass the
+          cache and fetch directly from the upstream source.
+        applicability:
+          - local
+          - shared

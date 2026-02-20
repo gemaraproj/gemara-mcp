@@ -1,0 +1,191 @@
+metadata:
+  id: GEMARA.MCP
+  description: >-
+    Threat catalog for the Gemara MCP Server, a Model Context Protocol server
+    that provides schema validation, lexicon retrieval, and guided artifact
+    creation for Gemara security artifacts.
+  version: 1.0.0
+  author:
+    id: jpower432
+    name: Jenn Power
+    type: Software-Assisted
+  mapping-references:
+    - id: CCC.Core
+      title: Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
+      description: >-
+        Foundational repository of reusable security controls, capabilities,
+        and threat models from FINOS Common Cloud Controls.
+    - id: MITRE-ATTACK
+      title: MITRE ATT&CK Enterprise
+      version: "16.1"
+      url: https://attack.mitre.org/techniques/enterprise/
+      description: MITRE ATT&CK knowledge base of adversary tactics and techniques
+title: Gemara MCP Server Security Threat Catalog
+imported-capabilities:
+  - reference-id: CCC.Core
+    entries:
+      - reference-id: CCC.Core.CP01
+        remarks: All outbound fetches enforce HTTPS-only via URLBuilder validation
+      - reference-id: CCC.Core.CP14
+        remarks: MCP protocol exposes tools programmatically via stdio and planned streamable HTTP
+capabilities:
+  - id: GEMARA.MCP.CAP01
+    title: Schema Validation
+    description: >-
+      Validates user-provided YAML artifacts against Gemara CUE schemas
+      fetched from the CUE registry.
+  - id: GEMARA.MCP.CAP02
+    title: Remote Resource Retrieval
+    description: >-
+      Fetches lexicon definitions and schema documentation from external
+      sources over HTTPS with retry logic.
+  - id: GEMARA.MCP.CAP03
+    title: In-Memory Response Caching
+    description: >-
+      TTL-based cache for remote resource responses to reduce external
+      requests.
+  - id: GEMARA.MCP.CAP04
+    title: Guided Artifact Creation
+    description: >-
+      Prompt-based wizards that generate system and user message templates
+      for threat assessments and control catalogs.
+imported-threats:
+  - reference-id: CCC.Core
+    entries:
+      - reference-id: CCC.Core.TH02
+        remarks: Outbound fetches to GitHub and CUE registry could be intercepted
+      - reference-id: CCC.Core.TH12
+        remarks: Unbounded responses or cache growth could exhaust server memory
+      - reference-id: CCC.Core.TH14
+        remarks: Stale cached schemas or lexicon data served past intended lifetime
+threats:
+  - id: GEMARA.MCP.THR01
+    title: Malicious YAML Exploits Schema Validation
+    description: >-
+      An attacker submits crafted YAML such as billion laughs or deeply nested
+      structures to the validate_gemara_artifact tool, causing excessive memory
+      or CPU consumption during CUE parsing.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP01
+            remarks: Validation parses and unifies arbitrary user-provided YAML against CUE schemas
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1190
+            remarks: Exploit Public-Facing Application
+  - id: GEMARA.MCP.THR02
+    title: CUE Registry Serves Compromised Schema
+    description: >-
+      The CUE registry or GitHub source is compromised, causing the server to
+      fetch and use a tampered schema or lexicon that produces incorrect
+      validation results.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP01
+            remarks: Validation logic trusts the schema fetched from the registry
+          - reference-id: GEMARA.MCP.CAP02
+            remarks: Fetcher retrieves content from external sources without integrity verification
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1195.002
+            remarks: Compromise Software Supply Chain
+  - id: GEMARA.MCP.THR03
+    title: Prompt Template Injection via Arguments
+    description: >-
+      Malicious values in prompt component or id_prefix arguments are injected
+      into system and user message templates, manipulating the LLM behavior
+      beyond the wizard intended scope.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP04
+            remarks: Wizard templates perform string replacement with user-provided arguments
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.CP14
+            remarks: MCP protocol interface accepts prompt arguments from external clients
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1059
+            remarks: Command and Scripting Interpreter
+  - id: GEMARA.MCP.THR04
+    title: Cache Serves Poisoned Data
+    description: >-
+      An attacker triggers a fetch during a window where the upstream source is
+      compromised and the poisoned response is cached and served for the
+      duration of the TTL with no integrity verification.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP03
+            remarks: Cache stores and serves fetched content without integrity checks
+          - reference-id: GEMARA.MCP.CAP02
+            remarks: Fetcher retrieves content that is subsequently cached
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1565.001
+            remarks: Data Manipulation - Stored Data Manipulation
+  - id: GEMARA.MCP.THR05
+    title: Version String Manipulates Fetch URL
+    description: >-
+      A crafted version string bypasses validation and alters the constructed
+      URL to point to an unintended host or path, resulting in server-side
+      request forgery.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP02
+            remarks: URLBuilder constructs fetch URLs from user-provided version strings
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.CP01
+            remarks: HTTPS enforcement could be bypassed if URL origin check is defeated
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1190
+            remarks: Exploit Public-Facing Application
+  - id: GEMARA.MCP.THR06
+    title: Upstream Dependency is Compromised
+    description: >-
+      A Go module dependency such as the CUE SDK, YAML parser, or MCP SDK is
+      compromised via supply chain attack, introducing malicious behavior into
+      the server binary at build time.
+    capabilities:
+      - reference-id: GEMARA.MCP
+        entries:
+          - reference-id: GEMARA.MCP.CAP01
+            remarks: CUE SDK and YAML parser are core to schema validation
+          - reference-id: GEMARA.MCP.CAP02
+            remarks: HTTP client libraries handle all outbound requests
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1195.001
+            remarks: Supply Chain Compromise - Compromise Software Dependencies and Development Tools
+  - id: GEMARA.MCP.THR07
+    title: Unauthorized Access via HTTP Transport
+    description: >-
+      When streamable HTTP transport is enabled, the server accepts requests
+      from unauthorized clients due to lack of authentication or access control
+      mechanisms.
+    capabilities:
+      - reference-id: CCC.Core
+        entries:
+          - reference-id: CCC.Core.CP14
+            remarks: HTTP transport exposes MCP tools to network clients without authentication
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1078
+            remarks: Valid Accounts
+          - reference-id: T1190
+            remarks: Exploit Public-Facing Application
