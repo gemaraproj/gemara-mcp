@@ -75,7 +75,7 @@ func serveCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&modeName, "mode", "artifact", "server mode: advisory (read-only) or artifact (advisory + guided artifact creation)")
+	cmd.Flags().StringVar(&modeName, "mode", "artifact", "server mode: advisory (consumer, read-only evaluation) or artifact (producer, guided artifact creation)")
 
 	return cmd
 }
