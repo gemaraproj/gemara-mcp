@@ -35,3 +35,5 @@ mcp.json
 .idea/
 .vscode/
 
+# Build artifact
+dist/

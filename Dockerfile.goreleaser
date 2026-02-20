@@ -1,0 +1,7 @@
+FROM gcr.io/distroless/static-debian12:nonroot
+
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/gemara-mcp /bin/gemara-mcp
+WORKDIR /workspace
+
+ENTRYPOINT ["/bin/gemara-mcp"]
