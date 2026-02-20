@@ -1,0 +1,53 @@
+---
+name: "Release"
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+jobs:
+  release:
+    permissions:
+      contents: write
+      pull-requests: read
+    uses: github/ospo-reusable-workflows/.github/workflows/release.yaml@3b691dff6b68489c8548e1295d125c93c9c29a4e
+    with:
+      publish: true
+      release-config-name: release-drafter.yml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+  goreleaser:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
