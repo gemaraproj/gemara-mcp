@@ -41,7 +41,8 @@ var MetadataGetLexicon = &mcp.Tool{
 
 // InputGetLexicon is the input for the GetLexicon tool.
 type InputGetLexicon struct {
-	Refresh bool `json:"refresh"`
+	Refresh bool   `json:"refresh"`
+	Version string `json:"version"`
 }
 
 // GetLexicon retrieves the Gemara Lexicon using the specified cached fetcher.
