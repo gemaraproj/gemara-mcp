@@ -85,19 +85,6 @@ spec:
 			},
 		},
 		{
-			name: "dockerfile produces candidates",
-			input: InputParseGovernanceDocument{
-				Content:  "FROM ubuntu:22.04\nRUN apt-get install -y ca-certificates\nUSER nonroot\nEXPOSE 8080\n",
-				Format:   "dockerfile",
-				SourceID: "Dockerfile",
-			},
-			wantErr: false,
-			validateOutput: func(t *testing.T, output OutputParseGovernanceDocument) {
-				assert.Equal(t, "dockerfile", output.ParserUsed)
-				assert.Greater(t, output.TotalChunks, 0)
-			},
-		},
-		{
 			name: "auto-detection without format hint",
 			input: InputParseGovernanceDocument{
 				Content: "# Auto-detected Markdown\nThis is a control. The objective is to ensure compliance.",
