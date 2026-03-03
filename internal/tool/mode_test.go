@@ -114,8 +114,8 @@ func TestAdvisoryModeMetadata(t *testing.T) {
 	mode, err := NewAdvisoryMode(cache)
 	require.NoError(t, err)
 	assert.Equal(t, "advisory", mode.Name())
-	assert.Contains(t, mode.Description(), "read-only")
 	assert.Contains(t, mode.Description(), "not create new ones")
+	assert.Contains(t, mode.Description(), "artifact mode")
 }
 
 func TestArtifactModeMetadata(t *testing.T) {
@@ -123,8 +123,8 @@ func TestArtifactModeMetadata(t *testing.T) {
 	mode, err := NewArtifactMode(cache)
 	require.NoError(t, err)
 	assert.Equal(t, "artifact", mode.Name())
-	assert.Contains(t, mode.Description(), "advisory capabilities")
-	assert.Contains(t, mode.Description(), "Orient every response toward creation")
+	assert.Contains(t, mode.Description(), "threat_assessment")
+	assert.Contains(t, mode.Description(), "control_catalog")
 }
 
 func TestModeInterfaceCompliance(t *testing.T) {
