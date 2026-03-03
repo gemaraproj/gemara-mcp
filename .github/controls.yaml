@@ -5,7 +5,11 @@ title: Gemara MCP Server Security Control Catalog
 
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
-  description: The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
+  description: >-
+    The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
+    It provides read-only access to lexicon terms and schema documentation,
+    YAML artifact validation against CUE schemas, and guided wizard prompts
+    for creating Threat Catalogs and Control Catalogs (Layer 2).
   version: 1.0.0
   author:
     id: gemara
@@ -15,7 +19,7 @@ metadata:
     - id: CCC-Core
       title: FINOS Common Cloud Controls Core
       version: v2025.10
-      url: https://github.com/finos/common-cloud-controls/releases
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
       description: FINOS CCC core catalog of capabilities and threats for cloud controls
     - id: NIST-800-53
       title: NIST SP 800-53 Rev. 5
@@ -48,6 +52,16 @@ families:
   - id: data-integrity
     title: Data integrity
     description: Controls that ensure correct schema/lexicon version, cache integrity, and validation correctness (stale, poisoned, or bypass).
+
+imported-controls:
+  - reference-id: CCC-Core
+    entries:
+      - reference-id: CCC.Core.CN01
+        remarks: Adopt encrypt-in-transit control for both inbound (C04) and outbound (C05) transport.
+      - reference-id: CCC.Core.CN03
+        remarks: Adopt MFA requirement for streamable-HTTP shared instances (C03).
+      - reference-id: CCC.Core.CN05
+        remarks: Adopt untrusted entity prevention for streamable-HTTP shared instances (C03).
 
 controls:
   - id: GEMARAPROJ.GEMARA.MCP.C01
@@ -155,6 +169,9 @@ controls:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR07
             strength: 6
             remarks: Stale or wrong schema version
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR11
+            strength: 9
+            remarks: Network interception of external fetches
     guideline-mappings:
       - reference-id: NIST-800-53
         entries:
@@ -247,6 +264,39 @@ controls:
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C08.TR01
         text: Guided artifact-creation prompts MUST structure content so that user-supplied input is clearly delimited and treated as data, not as executable instructions.
+        applicability:
+          - stdio
+          - streamable-http
+  - id: GEMARAPROJ.GEMARA.MCP.C09
+    family: data-integrity
+    title: Upstream resource integrity verification
+    objective: Reduce the risk of supply chain compromise by verifying the integrity of externally fetched resources (lexicon, schema) against known-good checksums or signatures before use or caching.
+    threat-mappings:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR10
+            strength: 8
+            remarks: Upstream supply chain compromise
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR11
+            strength: 6
+            remarks: Integrity check detects tampered content even if HTTPS is bypassed
+    guideline-mappings:
+      - reference-id: NIST-800-53
+        entries:
+          - reference-id: SA-12
+            strength: 7
+            remarks: Supply Chain Protection
+          - reference-id: SI-7
+            strength: 7
+            remarks: Software, Firmware, and Information Integrity
+    assessment-requirements:
+      - id: GEMARAPROJ.GEMARA.MCP.C09.TR01
+        text: When fetching external resources (lexicon, schema), the server MUST verify the content against a declared checksum or cryptographic signature before serving or caching it.
+        applicability:
+          - stdio
+          - streamable-http
+      - id: GEMARAPROJ.GEMARA.MCP.C09.TR02
+        text: When integrity verification fails for a fetched resource, the server MUST discard the response and MUST return an error to the caller.
         applicability:
           - stdio
           - streamable-http

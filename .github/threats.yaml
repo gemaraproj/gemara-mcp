@@ -1,11 +1,12 @@
-# Gemara MCP Server Security Threat Catalog (Layer 2)
-# ID prefix: GEMARAPROJ.GEMARA.MCP
-
 title: Gemara MCP Server Security Threat Catalog
 
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
-  description: The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
+  description: >-
+    The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
+    It provides read-only access to lexicon terms and schema documentation,
+    YAML artifact validation against CUE schemas, and guided wizard prompts
+    for creating Threat Catalogs and Control Catalogs (Layer 2).
   version: 1.0.0
   author:
     id: gemara
@@ -15,7 +16,7 @@ metadata:
     - id: CCC-Core
       title: FINOS Common Cloud Controls Core
       version: v2025.10
-      url: https://github.com/finos/common-cloud-controls/releases
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
       description: FINOS CCC core catalog of capabilities and threats for cloud controls
     - id: MITRE-ATTACK
       title: MITRE ATT&CK Enterprise
@@ -26,16 +27,19 @@ metadata:
 capabilities:
   - id: GEMARAPROJ.GEMARA.MCP.CAP01
     title: Lexicon retrieval
-    description: Exposes read-only access to the Gemara lexicon for term definitions.
+    description: Read-only access to the Gemara lexicon for term definitions, fetched via HTTP and cached in-process (1hr TTL).
   - id: GEMARAPROJ.GEMARA.MCP.CAP02
     title: Artifact validation
-    description: Validates YAML artifacts against Gemara CUE schema definitions (e.g. ThreatCatalog, ControlCatalog, GuidanceDocument).
+    description: Validates YAML artifacts against Gemara CUE schema definitions (ThreatCatalog, ControlCatalog, GuidanceDocument) using the CUE Go SDK and registry module.
   - id: GEMARAPROJ.GEMARA.MCP.CAP03
     title: Schema documentation retrieval
-    description: Exposes read-only access to Gemara CUE schema documentation.
+    description: Read-only access to Gemara CUE schema documentation, fetched from the CUE registry via HTTP and cached in-process.
   - id: GEMARAPROJ.GEMARA.MCP.CAP04
     title: Guided artifact creation prompts
-    description: Exposes prompts for guided artifact creation (e.g. threat assessment, control catalog wizards).
+    description: Exposes MCP prompts for guided wizard-driven creation of Threat Catalogs and Control Catalogs (Layer 2), available only in artifact mode.
+  - id: GEMARAPROJ.GEMARA.MCP.CAP05
+    title: External resource fetching and caching
+    description: HTTP client that fetches remote resources (lexicon, schema docs) from GitHub and the CUE registry, with an in-process TTL cache (1hr default). Shared infrastructure for CAP01 and CAP03.
 
 threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR01
@@ -161,3 +165,37 @@ threats:
         entries:
           - reference-id: T1498
             remarks: Network Denial of Service
+  - id: GEMARAPROJ.GEMARA.MCP.THR10
+    title: Upstream supply chain compromise
+    description: An adversary compromises the upstream source (GitHub lexicon repository or CUE registry) to inject malicious schema or lexicon content before it reaches the in-process cache, affecting all consumers of those resources.
+    capabilities:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP05
+            remarks: Compromise of upstream sources affects all resources fetched by this capability.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP01
+            remarks: Malicious lexicon content served to consumers.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
+            remarks: Malicious schema docs served to consumers.
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1195
+            remarks: Supply Chain Compromise
+  - id: GEMARAPROJ.GEMARA.MCP.THR11
+    title: Network interception of external fetches
+    description: A man-in-the-middle attacker intercepts HTTP requests to lexicon or schema endpoints, substituting tampered content that is then cached and served to users.
+    capabilities:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP05
+            remarks: Network interception targets the HTTP fetch layer.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP01
+            remarks: Tampered lexicon content served to consumers.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
+            remarks: Tampered schema docs served to consumers.
+    external-mappings:
+      - reference-id: MITRE-ATTACK
+        entries:
+          - reference-id: T1557
+            remarks: Adversary-in-the-Middle
