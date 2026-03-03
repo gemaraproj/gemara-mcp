@@ -31,8 +31,8 @@ var MetadataParseGovernanceDocument = &mcp.Tool{
 			},
 			"format": map[string]interface{}{
 				"type":        "string",
-				"description": "Format hint for the document. One of: markdown, yaml, json, kubernetes, dockerfile. If omitted, auto-detection is used.",
-				"enum":        []string{"markdown", "yaml", "json", "kubernetes", "dockerfile"},
+				"description": "Format hint for the document. One of: markdown, yaml, json, kubernetes. If omitted, auto-detection is used.",
+				"enum":        []string{"markdown", "yaml", "json", "kubernetes"},
 			},
 			"source_id": map[string]interface{}{
 				"type":        "string",
