@@ -4,6 +4,7 @@ package tool
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"cuelang.org/go/cue"
@@ -52,12 +53,12 @@ func GetSchemaDocs(
 ) (*mcp.CallToolResult, OutputGetSchemaDocs, error) {
 	val, source, err := cf.Fetch(ctx, input.Refresh)
 	if err != nil {
-		return nil, OutputGetSchemaDocs{}, err
+		return nil, OutputGetSchemaDocs{}, fmt.Errorf("failed to fetch schema: %w", err)
 	}
 
 	defs, err := schema.FormatDefinitions(val)
 	if err != nil {
-		return nil, OutputGetSchemaDocs{}, err
+		return nil, OutputGetSchemaDocs{}, fmt.Errorf("failed to format schema: %w", err)
 	}
 
 	slog.Info("schema docs loaded", "source", source, "length", len(defs))

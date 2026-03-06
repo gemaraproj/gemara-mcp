@@ -56,7 +56,7 @@ func GetLexicon(ctx context.Context, _ *mcp.CallToolRequest, input InputGetLexic
 
 	data, sourceID, err := cachedFetcher.Fetch(ctx, input.Refresh)
 	if err != nil {
-		return nil, OutputGetLexicon{}, err
+		return nil, OutputGetLexicon{}, fmt.Errorf("failed to fetch lexicon: %w", err)
 	}
 
 	var entries []LexiconEntry
