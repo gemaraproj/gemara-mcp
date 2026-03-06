@@ -4,8 +4,12 @@ package tool
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
+	"cuelang.org/go/cue"
 	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -18,7 +22,7 @@ type OutputGetSchemaDocs struct {
 // MetadataGetSchemaDocs describes the GetSchemaDocs tool.
 var MetadataGetSchemaDocs = &mcp.Tool{
 	Name:        "get_schema_docs",
-	Description: "Retrieve schema documentation for the Gemara CUE module from the CUE registry.",
+	Description: "Retrieve schema definitions for the Gemara CUE module using the CUE registry.",
 	InputSchema: map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
@@ -40,17 +44,26 @@ type InputGetSchemaDocs struct {
 	Version string `json:"version"`
 }
 
-// GetSchemaDocs retrieves schema documentation using the specified cached fetcher.
-func GetSchemaDocs(ctx context.Context, _ *mcp.CallToolRequest, input InputGetSchemaDocs, cachedFetcher *fetcher.CachedFetcher) (*mcp.CallToolResult, OutputGetSchemaDocs, error) {
-	data, sourceID, err := cachedFetcher.Fetch(ctx, input.Refresh)
+// GetSchemaDocs loads the Gemara CUE module and returns formatted schema definitions.
+func GetSchemaDocs(
+	ctx context.Context,
+	_ *mcp.CallToolRequest,
+	input InputGetSchemaDocs,
+	cf *fetcher.CachedFetcher[cue.Value],
+) (*mcp.CallToolResult, OutputGetSchemaDocs, error) {
+	val, source, err := cf.Fetch(ctx, input.Refresh)
 	if err != nil {
-		return nil, OutputGetSchemaDocs{}, err
+		return nil, OutputGetSchemaDocs{}, fmt.Errorf("failed to fetch schema: %w", err)
 	}
 
-	output := OutputGetSchemaDocs{
-		Documentation: string(data),
-		URL:           sourceID,
+	defs, err := schema.FormatDefinitions(val)
+	if err != nil {
+		return nil, OutputGetSchemaDocs{}, fmt.Errorf("failed to format schema: %w", err)
 	}
 
-	return nil, output, nil
+	slog.Info("schema docs loaded", "source", source, "length", len(defs))
+	return nil, OutputGetSchemaDocs{
+		Documentation: defs,
+		URL:           source,
+	}, nil
 }

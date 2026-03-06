@@ -5,6 +5,7 @@ package tool
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
 	"github.com/goccy/go-yaml"
@@ -35,6 +36,10 @@ var MetadataGetLexicon = &mcp.Tool{
 				"type":        "boolean",
 				"description": "Force refresh of lexicon cache (default: false)",
 			},
+			"version": map[string]interface{}{
+				"type":        "string",
+				"description": "Version of the Gemara lexicon to retrieve (e.g., 'v0.19.1')",
+			},
 		},
 	},
 }
@@ -46,10 +51,12 @@ type InputGetLexicon struct {
 }
 
 // GetLexicon retrieves the Gemara Lexicon using the specified cached fetcher.
-func GetLexicon(ctx context.Context, _ *mcp.CallToolRequest, input InputGetLexicon, cachedFetcher *fetcher.CachedFetcher) (*mcp.CallToolResult, OutputGetLexicon, error) {
+func GetLexicon(ctx context.Context, _ *mcp.CallToolRequest, input InputGetLexicon, cachedFetcher *fetcher.CachedFetcher[[]byte]) (*mcp.CallToolResult, OutputGetLexicon, error) {
+	slog.Info("fetching lexicon", "refresh", input.Refresh)
+
 	data, sourceID, err := cachedFetcher.Fetch(ctx, input.Refresh)
 	if err != nil {
-		return nil, OutputGetLexicon{}, err
+		return nil, OutputGetLexicon{}, fmt.Errorf("failed to fetch lexicon: %w", err)
 	}
 
 	var entries []LexiconEntry
@@ -57,6 +64,7 @@ func GetLexicon(ctx context.Context, _ *mcp.CallToolRequest, input InputGetLexic
 		return nil, OutputGetLexicon{}, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
+	slog.Info("lexicon loaded", "entry_count", len(entries), "source", sourceID)
 	return nil, OutputGetLexicon{
 		Entries: entries,
 		Source:  sourceID,

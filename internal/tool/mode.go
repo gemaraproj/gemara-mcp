@@ -5,9 +5,13 @@ package tool
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
+	"cuelang.org/go/cue"
 	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
 	"github.com/gemaraproj/gemara-mcp/internal/tool/prompts"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -16,7 +20,7 @@ const (
 	defaultLexiconVersion = "v0.19.1"
 	lexiconBaseURL        = "https://raw.githubusercontent.com/gemaraproj/gemara/"
 	lexiconPathSuffix     = "/docs/lexicon.yaml"
-	schemaDocsBaseURL     = "https://registry.cue.works/docs/github.com/gemaraproj/gemara@"
+	gemaraModuleBase      = "github.com/gemaraproj/gemara@"
 )
 
 // Mode represents the operational mode of the MCP server.
@@ -31,25 +35,22 @@ type Mode interface {
 
 // AdvisoryMode defines tools and resources for operating in a read-only query mode
 type AdvisoryMode struct {
-	cache                *fetcher.Cache
-	lexiconURLBuilder    *fetcher.URLBuilder
-	schemaDocsURLBuilder *fetcher.URLBuilder
+	lexiconCache      *fetcher.Cache[[]byte]
+	lexiconURLBuilder *fetcher.URLBuilder
+	schemaCache       *fetcher.Cache[cue.Value]
 }
 
-// NewAdvisoryMode creates a new AdvisoryMode with the provided cache and default URLs.
-func NewAdvisoryMode(cache *fetcher.Cache) (*AdvisoryMode, error) {
+// NewAdvisoryMode creates a new AdvisoryMode with the provided cache TTL and default URLs.
+func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
 	lexBuilder, err := fetcher.NewURLBuilder(lexiconBaseURL, lexiconPathSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("configuring lexicon URL: %w", err)
 	}
-	schemaBuilder, err := fetcher.NewURLBuilder(schemaDocsBaseURL, "")
-	if err != nil {
-		return nil, fmt.Errorf("configuring schema docs URL: %w", err)
-	}
+	slog.Info("mode initialized", "mode", "advisory")
 	return &AdvisoryMode{
-		cache:                cache,
-		lexiconURLBuilder:    lexBuilder,
-		schemaDocsURLBuilder: schemaBuilder,
+		lexiconCache:      fetcher.NewCache[[]byte](cacheTTL),
+		lexiconURLBuilder: lexBuilder,
+		schemaCache:       fetcher.NewCache[cue.Value](cacheTTL),
 	}, nil
 }
 
@@ -73,7 +74,7 @@ Behavioral guidelines:
 
 func (a *AdvisoryMode) Register(server *mcp.Server) {
 	mcp.AddTool(server, MetadataGetLexicon, a.getLexicon)
-	mcp.AddTool(server, MetadataValidateGemaraArtifact, ValidateGemaraArtifact)
+	mcp.AddTool(server, MetadataValidateGemaraArtifact, a.validateGemaraArtifact)
 	mcp.AddTool(server, MetadataGetSchemaDocs, a.getSchemaDocs)
 }
 
@@ -83,11 +84,12 @@ type ArtifactMode struct {
 }
 
 // NewArtifactMode creates a new ArtifactMode with all AdvisoryMode capabilities plus artifact prompts.
-func NewArtifactMode(cache *fetcher.Cache) (*ArtifactMode, error) {
-	advisory, err := NewAdvisoryMode(cache)
+func NewArtifactMode(cacheTTL time.Duration) (*ArtifactMode, error) {
+	advisory, err := NewAdvisoryMode(cacheTTL)
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("mode initialized", "mode", "artifact")
 	return &ArtifactMode{AdvisoryMode: advisory}, nil
 }
 
@@ -126,20 +128,30 @@ func (a *AdvisoryMode) getLexicon(ctx context.Context, req *mcp.CallToolRequest,
 	if err != nil {
 		return nil, OutputGetLexicon{}, err
 	}
-	cf := fetcher.NewCachedFetcher(f, a.cache, f.URL())
+	cf := fetcher.NewCachedFetcher[[]byte](f, a.lexiconCache, f.URL())
 	return GetLexicon(ctx, req, input, cf)
 }
 
-// getSchemaDocs wraps GetSchemaDocs with cache access and configuration.
+// validateGemaraArtifact wraps ValidateGemaraArtifact with schema cache access.
+func (a *AdvisoryMode) validateGemaraArtifact(ctx context.Context, req *mcp.CallToolRequest, input InputValidateGemaraArtifact) (*mcp.CallToolResult, OutputValidateGemaraArtifact, error) {
+	version := input.Version
+	if version == "" {
+		version = defaultSchemaVersion
+	}
+	modulePath := gemaraModuleBase + version
+	f := schema.NewCUERegistryFetcher(modulePath)
+	cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)
+	return ValidateGemaraArtifact(ctx, req, input, cf)
+}
+
+// getSchemaDocs wraps GetSchemaDocs with schema cache access.
 func (a *AdvisoryMode) getSchemaDocs(ctx context.Context, req *mcp.CallToolRequest, input InputGetSchemaDocs) (*mcp.CallToolResult, OutputGetSchemaDocs, error) {
 	version := input.Version
 	if version == "" {
 		version = defaultSchemaVersion
 	}
-	f, err := fetcher.NewHTTPFetcher(a.schemaDocsURLBuilder, version)
-	if err != nil {
-		return nil, OutputGetSchemaDocs{}, err
-	}
-	cf := fetcher.NewCachedFetcher(f, a.cache, f.URL())
+	modulePath := gemaraModuleBase + version
+	f := schema.NewCUERegistryFetcher(modulePath)
+	cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)
 	return GetSchemaDocs(ctx, req, input, cf)
 }

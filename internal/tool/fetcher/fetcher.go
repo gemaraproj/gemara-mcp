@@ -12,10 +12,10 @@ import (
 // defaultMaxResponseBytes limits response body reads.
 var defaultMaxResponseBytes int64 = 4 * 1024 * 1024 // 4 MiB
 
-// Fetcher is a generic interface for fetching raw data from a source.
-type Fetcher interface {
-	// Fetch retrieves raw data from the source and returns the data and source identifier.
-	Fetch(ctx context.Context) ([]byte, string, error)
+// Fetcher is a generic interface for fetching data from a source.
+type Fetcher[T any] interface {
+	// Fetch retrieves data from the source and returns the data and source identifier.
+	Fetch(ctx context.Context) (T, string, error)
 }
 
 // HTTPFetcher fetches data from an HTTP URL.
@@ -84,35 +84,36 @@ func limitReader(r io.Reader, n int64) io.Reader {
 }
 
 // CachedFetcher wraps a Fetcher with caching behavior.
-type CachedFetcher struct {
-	fetcher Fetcher
-	cache   *Cache
-	source  string
+type CachedFetcher[T any] struct {
+	fetcher Fetcher[T]
+	cache   *Cache[T]
+	key     string
 }
 
 // NewCachedFetcher creates a new cached fetcher that wraps the provided fetcher.
-func NewCachedFetcher(f Fetcher, cache *Cache, source string) *CachedFetcher {
-	return &CachedFetcher{
+func NewCachedFetcher[T any](f Fetcher[T], cache *Cache[T], key string) *CachedFetcher[T] {
+	return &CachedFetcher[T]{
 		fetcher: f,
 		cache:   cache,
-		source:  source,
+		key:     key,
 	}
 }
 
 // Fetch retrieves data, checking cache first and storing results in cache.
 // If refresh is true, bypasses cache and fetches fresh data.
-func (c *CachedFetcher) Fetch(ctx context.Context, refresh bool) ([]byte, string, error) {
+func (c *CachedFetcher[T]) Fetch(ctx context.Context, refresh bool) (T, string, error) {
 	if !refresh {
-		if cachedData, cachedSource, found := c.cache.Get(c.source); found {
-			return cachedData, cachedSource, nil
+		if val, source, found := c.cache.Get(c.key); found {
+			return val, source, nil
 		}
 	}
 
-	data, sourceID, err := c.fetcher.Fetch(ctx)
+	val, source, err := c.fetcher.Fetch(ctx)
 	if err != nil {
-		return nil, "", err
+		var zero T
+		return zero, "", err
 	}
 
-	c.cache.Set(c.source, data, sourceID)
-	return data, sourceID, nil
+	c.cache.Set(c.key, val, source)
+	return val, source, nil
 }

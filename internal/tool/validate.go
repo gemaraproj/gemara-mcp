@@ -5,18 +5,13 @@ package tool
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"cuelang.org/go/cue"
-	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/load"
-	"cuelang.org/go/encoding/yaml"
-	"cuelang.org/go/mod/modconfig"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-)
-
-const (
-	gemaraModulePath = "github.com/gemaraproj/gemara@latest"
 )
 
 // MetadataValidateGemaraArtifact describes the ValidateGemaraArtifact tool.
@@ -35,6 +30,10 @@ var MetadataValidateGemaraArtifact = &mcp.Tool{
 				"type":        "string",
 				"description": "CUE definition name to validate against (e.g., '#ControlCatalog', '#GuidanceDocument', '#Policy', '#EvaluationLog')",
 			},
+			"version": map[string]interface{}{
+				"type":        "string",
+				"description": "Version of the Gemara module to validate against (default: 'latest')",
+			},
 		},
 	},
 }
@@ -43,6 +42,7 @@ var MetadataValidateGemaraArtifact = &mcp.Tool{
 type InputValidateGemaraArtifact struct {
 	ArtifactContent string `json:"artifact_content"`
 	Definition      string `json:"definition"`
+	Version         string `json:"version"`
 }
 
 // OutputValidateGemaraArtifact is the output for the ValidateGemaraArtifact tool.
@@ -53,7 +53,7 @@ type OutputValidateGemaraArtifact struct {
 }
 
 // ValidateGemaraArtifact validates a Gemara artifact using the CUE Go SDK with the registry module.
-func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input InputValidateGemaraArtifact) (*mcp.CallToolResult, OutputValidateGemaraArtifact, error) {
+func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input InputValidateGemaraArtifact, cf *fetcher.CachedFetcher[cue.Value]) (*mcp.CallToolResult, OutputValidateGemaraArtifact, error) {
 	// Validate inputs
 	if input.ArtifactContent == "" {
 		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("artifact_content is required")
@@ -68,85 +68,22 @@ func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input I
 		definition = "#" + definition
 	}
 
-	reg, err := modconfig.NewRegistry(nil)
+	slog.Info("validating artifact", "definition", definition, "content_length", len(input.ArtifactContent))
+
+	cueVal, _, err := cf.Fetch(ctx, false)
 	if err != nil {
-		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to create CUE registry: %w", err)
+		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("loading schema: %w", err)
 	}
 
-	// Pass the module path as an argument to load it from the registry
-	buildInstances := load.Instances([]string{gemaraModulePath}, &load.Config{
-		Registry: reg,
-	})
-
-	if len(buildInstances) == 0 {
-		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to load module: no instances returned")
-	}
-
-	if err := buildInstances[0].Err; err != nil {
-		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to load module: %w", err)
-	}
-
-	cueCtx := cuecontext.New()
-	schema := cueCtx.BuildInstance(buildInstances[0])
-	if err := schema.Err(); err != nil {
-		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("failed to build schema: %w", err)
-	}
-
-	entrypointPath := cue.ParsePath(definition)
-	entrypoint := schema.LookupPath(entrypointPath)
-	if !entrypoint.Exists() {
-		return nil, OutputValidateGemaraArtifact{}, fmt.Errorf("definition %s not found in schema", definition)
-	}
-
-	yamlFile, err := yaml.Extract("artifact.yaml", input.ArtifactContent)
+	result, err := schema.Validate(cueVal, definition, input.ArtifactContent)
 	if err != nil {
-		// Invalid YAML should result in validation failure, not a function error
-		output := OutputValidateGemaraArtifact{
-			Valid:   false,
-			Errors:  []string{fmt.Sprintf("Failed to parse YAML: %v", err)},
-			Message: fmt.Sprintf("Validation failed: invalid YAML: %v", err),
-		}
-		return nil, output, nil
+		return nil, OutputValidateGemaraArtifact{}, err
 	}
 
-	data := cueCtx.BuildFile(yamlFile)
-	if err := data.Err(); err != nil {
-		// Data build errors should result in validation failure
-		output := OutputValidateGemaraArtifact{
-			Valid:   false,
-			Errors:  []string{fmt.Sprintf("Failed to build data instance: %v", err)},
-			Message: fmt.Sprintf("Validation failed: %v", err),
-		}
-		return nil, output, nil
-	}
-
-	unified := entrypoint.Unify(data)
-
-	if err := unified.Validate(cue.Concrete(true)); err != nil {
-		errorOutput := err.Error()
-		errorLines := strings.Split(strings.TrimSpace(errorOutput), "\n")
-
-		// Filter out empty lines
-		var errors []string
-		for _, line := range errorLines {
-			if strings.TrimSpace(line) != "" {
-				errors = append(errors, line)
-			}
-		}
-
-		output := OutputValidateGemaraArtifact{
-			Valid:   false,
-			Errors:  errors,
-			Message: fmt.Sprintf("Validation failed: %v", err),
-		}
-		return nil, output, nil
-	}
-
-	output := OutputValidateGemaraArtifact{
-		Valid:   true,
-		Errors:  []string{},
-		Message: "Artifact is valid",
-	}
-
-	return nil, output, nil
+	slog.Info("validation complete", "definition", definition, "valid", result.Valid, "error_count", len(result.Errors))
+	return nil, OutputValidateGemaraArtifact{
+		Valid:   result.Valid,
+		Errors:  result.Errors,
+		Message: result.Message,
+	}, nil
 }

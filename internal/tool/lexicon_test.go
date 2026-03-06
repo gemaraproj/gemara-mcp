@@ -21,7 +21,7 @@ type mockFetcher struct {
 	err    error
 }
 
-func (m *mockFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
+func (m *mockFetcher) Fetch(_ context.Context) ([]byte, string, error) {
 	if m.err != nil {
 		return nil, "", m.err
 	}
@@ -79,8 +79,8 @@ func TestGetLexicon(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			cache := fetcher.NewCache(24 * time.Hour) // Test-specific TTL
-			cf := fetcher.NewCachedFetcher(tt.mockFetcher, cache, "mock://source")
+			cache := fetcher.NewCache[[]byte](24 * time.Hour)
+			cf := fetcher.NewCachedFetcher[[]byte](tt.mockFetcher, cache, "mock://source")
 
 			_, output, err := GetLexicon(ctx, nil, tt.input, cf)
 

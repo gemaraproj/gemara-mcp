@@ -7,56 +7,54 @@ import (
 	"time"
 )
 
-// TODO(jpower432): We can probably use a library here, but because we only need something really
-// simple right now - implemented it directly.
-
-// Cache is a shared cache for raw bytes fetched by fetchers, keyed by source identifier.
-type Cache struct {
+// Cache is a generic, thread-safe TTL cache keyed by string.
+type Cache[T any] struct {
 	mu    sync.RWMutex
-	items map[string]cacheItem
+	items map[string]cacheItem[T]
 	ttl   time.Duration
 }
 
-type cacheItem struct {
-	data      []byte
+type cacheItem[T any] struct {
+	value     T
 	source    string
 	cacheTime time.Time
 }
 
-// NewCache creates a new shared fetcher cache with the specified TTL.
-func NewCache(ttl time.Duration) *Cache {
-	return &Cache{
-		items: make(map[string]cacheItem),
+// NewCache creates a new cache with the specified TTL.
+func NewCache[T any](ttl time.Duration) *Cache[T] {
+	return &Cache[T]{
+		items: make(map[string]cacheItem[T]),
 		ttl:   ttl,
 	}
 }
 
-// Get retrieves cached data for a source if available and not expired.
-func (c *Cache) Get(source string) ([]byte, string, bool) {
+// Get retrieves a cached value if available and not expired.
+func (c *Cache[T]) Get(key string) (T, string, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	item, found := c.items[source]
+	item, found := c.items[key]
 	if !found {
-		return nil, "", false
+		var zero T
+		return zero, "", false
 	}
 
-	// Check if expired
 	if time.Since(item.cacheTime) >= c.ttl {
-		return nil, "", false
+		var zero T
+		return zero, "", false
 	}
 
-	return item.data, item.source, true
+	return item.value, item.source, true
 }
 
-// Set stores data in the cache for a source.
-func (c *Cache) Set(source string, data []byte, sourceID string) {
+// Set stores a value in the cache.
+func (c *Cache[T]) Set(key string, value T, source string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.items[source] = cacheItem{
-		data:      data,
-		source:    sourceID,
+	c.items[key] = cacheItem[T]{
+		value:     value,
+		source:    source,
 		cacheTime: time.Now(),
 	}
 }
