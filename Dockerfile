@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM golang:1.25.4-alpine AS builder
 
 # Install build dependencies

@@ -75,6 +75,9 @@ func (a *AdvisoryMode) Register(server *mcp.Server) {
 	mcp.AddTool(server, MetadataGetLexicon, a.getLexicon)
 	mcp.AddTool(server, MetadataValidateGemaraArtifact, ValidateGemaraArtifact)
 	mcp.AddTool(server, MetadataGetSchemaDocs, a.getSchemaDocs)
+
+	// Evidence pipeline tool - parses governance and config documents into schema candidates
+	mcp.AddTool(server, MetadataParseGovernanceDocument, ParseGovernanceDocument)
 }
 
 // ArtifactMode extends AdvisoryMode with guided wizards for creating Gemara artifacts.
