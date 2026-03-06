@@ -49,11 +49,17 @@ var (
 	//go:embed threat_assessment_system.md
 	threatAssessmentSystemTemplate string
 
+	//go:embed threat_assessment_assistant.md
+	threatAssessmentAssistantTemplate string
+
 	//go:embed threat_assessment_user.md
 	threatAssessmentUserTemplate string
 
 	//go:embed control_catalog_system.md
 	controlCatalogSystemTemplate string
+
+	//go:embed control_catalog_assistant.md
+	controlCatalogAssistantTemplate string
 
 	//go:embed control_catalog_user.md
 	controlCatalogUserTemplate string
@@ -123,8 +129,12 @@ func HandleControlCatalog(_ context.Context, req *mcp.GetPromptRequest) (*mcp.Ge
 		Description: fmt.Sprintf("Control catalog wizard for %s (%s)", component, idPrefix),
 		Messages: []*mcp.PromptMessage{
 			{
-				Role:    "assistant",
+				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(controlCatalogSystemTemplate)},
+			},
+			{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(controlCatalogAssistantTemplate)},
 			},
 			{
 				Role:    "user",
@@ -156,8 +166,12 @@ func HandleThreatAssessment(_ context.Context, req *mcp.GetPromptRequest) (*mcp.
 		Description: fmt.Sprintf("Threat assessment wizard for %s (%s)", component, idPrefix),
 		Messages: []*mcp.PromptMessage{
 			{
-				Role:    "assistant",
+				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(threatAssessmentSystemTemplate)},
+			},
+			{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(threatAssessmentAssistantTemplate)},
 			},
 			{
 				Role:    "user",

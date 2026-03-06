@@ -29,24 +29,34 @@ func TestHandleThreatAssessment(t *testing.T) {
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
 				assert.Contains(t, result.Description, "container runtime")
 				assert.Contains(t, result.Description, "ACME.PLAT.CR")
-				require.Len(t, result.Messages, 2, "should have two messages")
+				require.Len(t, result.Messages, 3, "should have three messages (user, assistant, user)")
 
-				assistantMsg := result.Messages[0]
-				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
-				text := assistantMsg.Content.(*mcp.TextContent).Text
+				instructionMsg := result.Messages[0]
+				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
+				text := instructionMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "container runtime")
 				assert.Contains(t, text, "ACME.PLAT.CR")
-				assert.Contains(t, text, "Phase 0")
-				assert.Contains(t, text, "Phase 1")
-				assert.Contains(t, text, "Phase 2")
-				assert.Contains(t, text, "Phase 3")
-				assert.Contains(t, text, "Phase 4")
-				assert.Contains(t, text, "Phase 5")
+				assert.Contains(t, text, "## Available Tools")
+				assert.Contains(t, text, "get_schema_docs")
+				assert.Contains(t, text, "get_lexicon")
+				assert.Contains(t, text, "**Catalog Import**")
+				assert.Contains(t, text, "**Scope and Metadata**")
+				assert.Contains(t, text, "**Identify Capabilities**")
+				assert.Contains(t, text, "**Identify Threats**")
+				assert.Contains(t, text, "**Assemble and Validate**")
+				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
-				assert.Contains(t, text, "FINOS Common Cloud Controls")
 				assert.Contains(t, text, "Privateer")
 
-				userMsg := result.Messages[1]
+				assistantMsg := result.Messages[1]
+				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
+				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, assistantText, "container runtime")
+				assert.Contains(t, assistantText, "FINOS CCC Core")
+				assert.Contains(t, assistantText, "Step 1: Catalog Import")
+				assert.Contains(t, assistantText, "reply \"yes\"")
+
+				userMsg := result.Messages[2]
 				assert.Equal(t, mcp.Role("user"), userMsg.Role)
 				userText := userMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, userText, "container runtime")
@@ -251,25 +261,35 @@ func TestHandleControlCatalog(t *testing.T) {
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
 				assert.Contains(t, result.Description, "container runtime")
 				assert.Contains(t, result.Description, "ACME.PLAT.CR")
-				require.Len(t, result.Messages, 2, "should have two messages")
+				require.Len(t, result.Messages, 3, "should have three messages (user, assistant, user)")
 
-				assistantMsg := result.Messages[0]
-				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
-				text := assistantMsg.Content.(*mcp.TextContent).Text
+				instructionMsg := result.Messages[0]
+				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
+				text := instructionMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "container runtime")
 				assert.Contains(t, text, "ACME.PLAT.CR")
-				assert.Contains(t, text, "Phase 0")
-				assert.Contains(t, text, "Phase 1")
-				assert.Contains(t, text, "Phase 2")
-				assert.Contains(t, text, "Phase 3")
-				assert.Contains(t, text, "Phase 4")
-				assert.Contains(t, text, "Phase 5")
+				assert.Contains(t, text, "## Available Tools")
+				assert.Contains(t, text, "get_schema_docs")
+				assert.Contains(t, text, "get_lexicon")
+				assert.Contains(t, text, "**Catalog Import**")
+				assert.Contains(t, text, "**Scope and Metadata**")
+				assert.Contains(t, text, "**Define Control Families**")
+				assert.Contains(t, text, "**Define Controls**")
+				assert.Contains(t, text, "**Assemble and Validate**")
+				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
-				assert.Contains(t, text, "FINOS Common Cloud Controls")
 				assert.Contains(t, text, "Privateer")
 				assert.Contains(t, text, "#ControlCatalog")
 
-				userMsg := result.Messages[1]
+				assistantMsg := result.Messages[1]
+				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
+				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, assistantText, "container runtime")
+				assert.Contains(t, assistantText, "FINOS CCC Core")
+				assert.Contains(t, assistantText, "Step 1: Catalog Import")
+				assert.Contains(t, assistantText, "reply \"yes\"")
+
+				userMsg := result.Messages[2]
 				assert.Equal(t, mcp.Role("user"), userMsg.Role)
 				userText := userMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, userText, "container runtime")
