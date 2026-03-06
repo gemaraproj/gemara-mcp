@@ -8,11 +8,22 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"cuelang.org/go/cue"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func newIntegrationSchemaCachedFetcher() *fetcher.CachedFetcher[cue.Value] {
+	cache := fetcher.NewCache[cue.Value](1 * time.Hour)
+	modulePath := gemaraModuleBase + defaultSchemaVersion
+	f := schema.NewCUERegistryFetcher(modulePath)
+	return fetcher.NewCachedFetcher[cue.Value](f, cache, modulePath)
+}
 
 func TestValidateGemaraArtifact(t *testing.T) {
 	// Load test data
@@ -130,8 +141,22 @@ metadata:
 				assert.True(t, output.Valid, "should be valid")
 			},
 		},
+		{
+			name: "explicit version parameter",
+			input: InputValidateGemaraArtifact{
+				ArtifactContent: string(validControlCatalogContent),
+				Definition:      "#ControlCatalog",
+				Version:         "latest",
+			},
+			wantErr:   false,
+			wantValid: boolPtr(true),
+			validateOutput: func(t *testing.T, output OutputValidateGemaraArtifact) {
+				assert.True(t, output.Valid, "should be valid with explicit version")
+			},
+		},
 	}
 
+	cf := newIntegrationSchemaCachedFetcher()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
@@ -141,7 +166,7 @@ metadata:
 				},
 			}
 
-			_, output, err := ValidateGemaraArtifact(ctx, req, tt.input)
+			_, output, err := ValidateGemaraArtifact(ctx, req, tt.input, cf)
 
 			if tt.wantErr {
 				require.Error(t, err, "should return error")

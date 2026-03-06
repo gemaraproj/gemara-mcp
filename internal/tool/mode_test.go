@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,8 +65,7 @@ func promptNames(t *testing.T, session *mcp.ClientSession) []string {
 }
 
 func TestAdvisoryModeRegistersToolsOnly(t *testing.T) {
-	cache := fetcher.NewCache(1 * time.Hour)
-	mode, err := NewAdvisoryMode(cache)
+	mode, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
 	server := mcp.NewServer(
 		&mcp.Implementation{Name: "test", Version: "0.0.0"},
@@ -88,8 +86,7 @@ func TestAdvisoryModeRegistersToolsOnly(t *testing.T) {
 }
 
 func TestArtifactModeRegistersToolsAndPrompts(t *testing.T) {
-	cache := fetcher.NewCache(1 * time.Hour)
-	mode, err := NewArtifactMode(cache)
+	mode, err := NewArtifactMode(1 * time.Hour)
 	require.NoError(t, err)
 	server := mcp.NewServer(
 		&mcp.Implementation{Name: "test", Version: "0.0.0"},
@@ -110,8 +107,7 @@ func TestArtifactModeRegistersToolsAndPrompts(t *testing.T) {
 }
 
 func TestAdvisoryModeMetadata(t *testing.T) {
-	cache := fetcher.NewCache(1 * time.Hour)
-	mode, err := NewAdvisoryMode(cache)
+	mode, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
 	assert.Equal(t, "advisory", mode.Name())
 	assert.Contains(t, mode.Description(), "read-only")
@@ -119,8 +115,7 @@ func TestAdvisoryModeMetadata(t *testing.T) {
 }
 
 func TestArtifactModeMetadata(t *testing.T) {
-	cache := fetcher.NewCache(1 * time.Hour)
-	mode, err := NewArtifactMode(cache)
+	mode, err := NewArtifactMode(1 * time.Hour)
 	require.NoError(t, err)
 	assert.Equal(t, "artifact", mode.Name())
 	assert.Contains(t, mode.Description(), "advisory capabilities")
@@ -128,13 +123,11 @@ func TestArtifactModeMetadata(t *testing.T) {
 }
 
 func TestModeInterfaceCompliance(t *testing.T) {
-	cache := fetcher.NewCache(1 * time.Hour)
-
-	advisory, err := NewAdvisoryMode(cache)
+	advisory, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
 	var _ Mode = advisory
 
-	artifact, err := NewArtifactMode(cache)
+	artifact, err := NewArtifactMode(1 * time.Hour)
 	require.NoError(t, err)
 	var _ Mode = artifact
 }

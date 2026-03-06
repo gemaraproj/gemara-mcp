@@ -20,7 +20,7 @@ type mockFetcher struct {
 	callCount int
 }
 
-func (m *mockFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
+func (m *mockFetcher) Fetch(_ context.Context) ([]byte, string, error) {
 	m.callCount++
 	if m.err != nil {
 		return nil, "", m.err
@@ -97,11 +97,11 @@ func TestCachedFetcher(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			cache := NewCache(24 * time.Hour) // Test-specific TTL
+			cache := NewCache[[]byte](24 * time.Hour)
 			source := "test://source"
 
 			mock := tt.setupMock()
-			cf := NewCachedFetcher(mock, cache, source)
+			cf := NewCachedFetcher[[]byte](mock, cache, source)
 
 			// For cache hit test, make two calls
 			if tt.name == "cache hit returns cached data" {
