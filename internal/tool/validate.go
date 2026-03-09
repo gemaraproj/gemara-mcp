@@ -53,6 +53,8 @@ type OutputValidateGemaraArtifact struct {
 }
 
 // ValidateGemaraArtifact validates a Gemara artifact using the CUE Go SDK with the registry module.
+// The returned *mcp.CallToolResult is always nil; the go-sdk derives the
+// tool response from the OutputValidateGemaraArtifact struct.
 func ValidateGemaraArtifact(ctx context.Context, _ *mcp.CallToolRequest, input InputValidateGemaraArtifact, cf *fetcher.CachedFetcher[cue.Value]) (*mcp.CallToolResult, OutputValidateGemaraArtifact, error) {
 	// Validate inputs
 	if input.ArtifactContent == "" {

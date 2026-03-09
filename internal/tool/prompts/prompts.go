@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -18,6 +19,13 @@ var (
 )
 
 const maxPromptArgLen = 200
+
+// LexiconFetcher retrieves the lexicon content at prompt invocation time.
+type LexiconFetcher func(ctx context.Context) (string, error)
+
+// SchemaDocsFetcher retrieves formatted schema documentation at prompt invocation time.
+// This allows version-specific schema content to be resolved per-session.
+type SchemaDocsFetcher func(ctx context.Context) (string, error)
 
 func validateComponent(value string) error {
 	if value == "" {
@@ -43,6 +51,31 @@ func validateIDPrefix(value string) error {
 		return fmt.Errorf("id_prefix %q must match ^[A-Z0-9.-]+$ (uppercase letters, digits, dots, hyphens only)", value)
 	}
 	return nil
+}
+
+func embeddedResourceMessages(lexicon string, schemaDocs string) []*mcp.PromptMessage {
+	return []*mcp.PromptMessage{
+		{
+			Role: "user",
+			Content: &mcp.EmbeddedResource{
+				Resource: &mcp.ResourceContents{
+					URI:      consts.LexiconResourceURI,
+					MIMEType: "text/yaml",
+					Text:     lexicon,
+				},
+			},
+		},
+		{
+			Role: "user",
+			Content: &mcp.EmbeddedResource{
+				Resource: &mcp.ResourceContents{
+					URI:      consts.SchemaDocsResourceURI,
+					MIMEType: "text/plain",
+					Text:     schemaDocs,
+				},
+			},
+		},
+	}
 }
 
 var (
@@ -107,76 +140,112 @@ var PromptControlCatalog = &mcp.Prompt{
 	},
 }
 
-// HandleControlCatalog returns the control catalog wizard prompt messages.
-func HandleControlCatalog(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-	if req.Params == nil || req.Params.Arguments == nil {
-		return nil, fmt.Errorf("component argument is required")
-	}
+// NewControlCatalogHandler returns a PromptHandler that embeds the lexicon and schema
+// docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
+func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
 
-	component := req.Params.Arguments["component"]
-	idPrefix := req.Params.Arguments["id_prefix"]
+		component := req.Params.Arguments["component"]
+		idPrefix := req.Params.Arguments["id_prefix"]
 
-	if err := validateComponent(component); err != nil {
-		return nil, err
-	}
-	if err := validateIDPrefix(idPrefix); err != nil {
-		return nil, err
-	}
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+		if err := validateIDPrefix(idPrefix); err != nil {
+			return nil, err
+		}
 
-	r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		lexicon, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
 
-	return &mcp.GetPromptResult{
-		Description: fmt.Sprintf("Control catalog wizard for %s (%s)", component, idPrefix),
-		Messages: []*mcp.PromptMessage{
-			{
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages = append(messages, resources...)
+		messages = append(messages,
+			&mcp.PromptMessage{
 				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(controlCatalogSystemTemplate)},
 			},
-			{
+			&mcp.PromptMessage{
 				Role:    "assistant",
 				Content: &mcp.TextContent{Text: r.Replace(controlCatalogAssistantTemplate)},
 			},
-			{
+			&mcp.PromptMessage{
 				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(controlCatalogUserTemplate)},
 			},
-		},
-	}, nil
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Control catalog wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
 }
 
-// HandleThreatAssessment returns the threat assessment wizard prompt messages.
-func HandleThreatAssessment(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-	if req.Params == nil || req.Params.Arguments == nil {
-		return nil, fmt.Errorf("component argument is required")
-	}
+// NewThreatAssessmentHandler returns a PromptHandler that embeds the lexicon and schema
+// docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
+func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
 
-	component := req.Params.Arguments["component"]
-	idPrefix := req.Params.Arguments["id_prefix"]
+		component := req.Params.Arguments["component"]
+		idPrefix := req.Params.Arguments["id_prefix"]
 
-	if err := validateComponent(component); err != nil {
-		return nil, err
-	}
-	if err := validateIDPrefix(idPrefix); err != nil {
-		return nil, err
-	}
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+		if err := validateIDPrefix(idPrefix); err != nil {
+			return nil, err
+		}
 
-	r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		lexicon, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
 
-	return &mcp.GetPromptResult{
-		Description: fmt.Sprintf("Threat assessment wizard for %s (%s)", component, idPrefix),
-		Messages: []*mcp.PromptMessage{
-			{
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages = append(messages, resources...)
+		messages = append(messages,
+			&mcp.PromptMessage{
 				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(threatAssessmentSystemTemplate)},
 			},
-			{
+			&mcp.PromptMessage{
 				Role:    "assistant",
 				Content: &mcp.TextContent{Text: r.Replace(threatAssessmentAssistantTemplate)},
 			},
-			{
+			&mcp.PromptMessage{
 				Role:    "user",
 				Content: &mcp.TextContent{Text: r.Replace(threatAssessmentUserTemplate)},
 			},
-		},
-	}, nil
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Threat assessment wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
 }

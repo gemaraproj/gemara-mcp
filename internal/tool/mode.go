@@ -16,11 +16,10 @@ import (
 )
 
 const (
-	defaultSchemaVersion  = "latest"
-	defaultLexiconVersion = "v0.19.1"
-	lexiconBaseURL        = "https://raw.githubusercontent.com/gemaraproj/gemara/"
-	lexiconPathSuffix     = "/docs/lexicon.yaml"
-	gemaraModuleBase      = "github.com/gemaraproj/gemara@"
+	defaultSchemaVersion = "latest"
+	gemaraModuleBase     = "github.com/gemaraproj/gemara@"
+	lexiconBaseURL       = "https://raw.githubusercontent.com/gemaraproj/gemara/"
+	lexiconPathSuffix    = "/docs/lexicon.yaml"
 )
 
 // Mode represents the operational mode of the MCP server.
@@ -29,28 +28,28 @@ type Mode interface {
 	Name() string
 	// Description returns a human-readable description of the mode.
 	Description() string
-	// Register adds mode-related tools to the mcp server
+	// Register adds mode-related tools and resources to the mcp server
 	Register(*mcp.Server)
 }
 
 // AdvisoryMode defines tools and resources for operating in a read-only query mode
 type AdvisoryMode struct {
+	schemaCache       *fetcher.Cache[cue.Value]
 	lexiconCache      *fetcher.Cache[[]byte]
 	lexiconURLBuilder *fetcher.URLBuilder
-	schemaCache       *fetcher.Cache[cue.Value]
 }
 
-// NewAdvisoryMode creates a new AdvisoryMode with the provided cache TTL and default URLs.
+// NewAdvisoryMode creates a new AdvisoryMode with the provided cache TTL.
 func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
-	lexBuilder, err := fetcher.NewURLBuilder(lexiconBaseURL, lexiconPathSuffix)
+	lexiconBuilder, err := fetcher.NewURLBuilder(lexiconBaseURL, lexiconPathSuffix)
 	if err != nil {
-		return nil, fmt.Errorf("configuring lexicon URL: %w", err)
+		return nil, fmt.Errorf("creating lexicon URL builder: %w", err)
 	}
 	slog.Info("mode initialized", "mode", "advisory")
 	return &AdvisoryMode{
-		lexiconCache:      fetcher.NewCache[[]byte](cacheTTL),
-		lexiconURLBuilder: lexBuilder,
 		schemaCache:       fetcher.NewCache[cue.Value](cacheTTL),
+		lexiconCache:      fetcher.NewCache[[]byte](cacheTTL),
+		lexiconURLBuilder: lexiconBuilder,
 	}, nil
 }
 
@@ -59,20 +58,18 @@ func (a *AdvisoryMode) Name() string {
 }
 
 func (a *AdvisoryMode) Description() string {
-	return `You are a Gemara advisor helping users understand, evaluate, and validate existing security artifacts — not create new ones.
+	return `Gemara advisory mode. Analyze and validate existing security artifacts.
 
-Tools:
-- get_lexicon — Retrieve Gemara term definitions
-- get_schema_docs — Retrieve CUE schema definitions
-- validate_gemara_artifact — Validate YAML against a Gemara schema
+Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}.
 
-Orient responses toward analysis: explain what an artifact says, whether it is valid, and what terms mean. Keep explanations grounded in the schema and lexicon. If a user asks to create a new artifact, suggest they use artifact mode for guided wizards.`
+For artifact creation, suggest switching to artifact mode.`
 }
 
 func (a *AdvisoryMode) Register(server *mcp.Server) {
-	mcp.AddTool(server, MetadataGetLexicon, a.getLexicon)
 	mcp.AddTool(server, MetadataValidateGemaraArtifact, a.validateGemaraArtifact)
-	mcp.AddTool(server, MetadataGetSchemaDocs, a.getSchemaDocs)
+	server.AddResource(ResourceLexicon, a.handleLexiconResource)
+	server.AddResource(ResourceSchemaDocs, a.handleSchemaDocsResource)
+	server.AddResourceTemplate(ResourceSchemaDocsTemplate, a.handleSchemaDocsTemplateResource)
 }
 
 // ArtifactMode extends AdvisoryMode with guided wizards for creating Gemara artifacts.
@@ -95,38 +92,43 @@ func (a *ArtifactMode) Name() string {
 }
 
 func (a *ArtifactMode) Description() string {
-	return `You are a Gemara artifact producer helping users create, iterate on, and validate security artifacts.
+	return `Gemara artifact mode. Create, iterate on, and validate security artifacts.
 
-Tools:
-- get_lexicon — Retrieve Gemara term definitions
-- get_schema_docs — Retrieve CUE schema definitions
-- validate_gemara_artifact — Validate YAML against a Gemara schema
+Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog.
 
-Wizard prompts:
-- threat_assessment — Guided Threat Catalog creation (Layer 2)
-- control_catalog — Guided Control Catalog creation (Layer 2)
-
-When users need a new artifact, offer the appropriate wizard. When iterating on existing drafts, validate frequently and suggest fixes. All advisory tools remain available for quick lookups during creation.`
+Offer wizard prompts for new artifacts. Validate frequently during iteration.`
 }
 
 func (a *ArtifactMode) Register(server *mcp.Server) {
 	a.AdvisoryMode.Register(server)
-	server.AddPrompt(prompts.PromptThreatAssessment, prompts.HandleThreatAssessment)
-	server.AddPrompt(prompts.PromptControlCatalog, prompts.HandleControlCatalog)
+
+	fetchLexicon := a.lexiconFetcher()
+	fetchSchemaDocs := a.schemaDocsFetcher()
+	server.AddPrompt(prompts.PromptThreatAssessment, prompts.NewThreatAssessmentHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(prompts.PromptControlCatalog, prompts.NewControlCatalogHandler(fetchLexicon, fetchSchemaDocs))
 }
 
-// getLexicon wraps GetLexicon with cache access and configuration.
-func (a *AdvisoryMode) getLexicon(ctx context.Context, req *mcp.CallToolRequest, input InputGetLexicon) (*mcp.CallToolResult, OutputGetLexicon, error) {
-	version := input.Version
-	if version == "" {
-		version = defaultLexiconVersion
+// lexiconFetcher returns a LexiconFetcher that always succeeds because
+// fetchLexicon falls back to the embedded lexicon on any remote failure.
+func (a *AdvisoryMode) lexiconFetcher() prompts.LexiconFetcher {
+	return func(ctx context.Context) (string, error) {
+		content, _ := a.fetchLexicon(ctx)
+		return content, nil
 	}
-	f, err := fetcher.NewHTTPFetcher(a.lexiconURLBuilder, version)
-	if err != nil {
-		return nil, OutputGetLexicon{}, err
+}
+
+func (a *AdvisoryMode) schemaDocsFetcher() prompts.SchemaDocsFetcher {
+	return func(ctx context.Context) (string, error) {
+		modulePath := gemaraModuleBase + defaultSchemaVersion
+		f := schema.NewCUERegistryFetcher(modulePath)
+		cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)
+
+		val, _, err := cf.Fetch(ctx, false)
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch schema: %w", err)
+		}
+		return schema.FormatDefinitions(val)
 	}
-	cf := fetcher.NewCachedFetcher[[]byte](f, a.lexiconCache, f.URL())
-	return GetLexicon(ctx, req, input, cf)
 }
 
 // validateGemaraArtifact wraps ValidateGemaraArtifact with schema cache access.
@@ -139,16 +141,4 @@ func (a *AdvisoryMode) validateGemaraArtifact(ctx context.Context, req *mcp.Call
 	f := schema.NewCUERegistryFetcher(modulePath)
 	cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)
 	return ValidateGemaraArtifact(ctx, req, input, cf)
-}
-
-// getSchemaDocs wraps GetSchemaDocs with schema cache access.
-func (a *AdvisoryMode) getSchemaDocs(ctx context.Context, req *mcp.CallToolRequest, input InputGetSchemaDocs) (*mcp.CallToolResult, OutputGetSchemaDocs, error) {
-	version := input.Version
-	if version == "" {
-		version = defaultSchemaVersion
-	}
-	modulePath := gemaraModuleBase + version
-	f := schema.NewCUERegistryFetcher(modulePath)
-	cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)
-	return GetSchemaDocs(ctx, req, input, cf)
 }
