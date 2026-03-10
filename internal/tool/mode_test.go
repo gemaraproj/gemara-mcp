@@ -247,4 +247,3 @@ func TestModeInterfaceCompliance(t *testing.T) {
 	require.NoError(t, err)
 	var _ Mode = artifact
 }
-
