@@ -5,6 +5,8 @@ title: Gemara MCP Server Security Control Catalog
 
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
+  type: ControlCatalog
+  gemara-version: "0.20.0"
   description: >-
     The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
     It provides read-only access to lexicon terms and schema documentation,
@@ -14,7 +16,7 @@ metadata:
   author:
     id: gemara
     name: Gemara Authors
-    type: Software-Assisted
+    type: Software Assisted
   mapping-references:
     - id: CCC-Core
       title: FINOS Common Cloud Controls Core
@@ -53,35 +55,36 @@ families:
     title: Data integrity
     description: Controls that ensure correct schema/lexicon version, cache integrity, and validation correctness (stale, poisoned, or bypass).
 
-imported-controls:
-  - reference-id: CCC-Core
-    entries:
-      - reference-id: CCC.Core.CN01
-        remarks: Adopt encrypt-in-transit control for both inbound (C04) and outbound (C05) transport.
-      - reference-id: CCC.Core.CN03
-        remarks: Adopt MFA requirement for streamable-HTTP shared instances (C03).
-      - reference-id: CCC.Core.CN05
-        remarks: Adopt untrusted entity prevention for streamable-HTTP shared instances (C03).
+imports:
+  controls:
+    - reference-id: CCC-Core
+      entries:
+        - reference-id: CCC.Core.CN01
+          remarks: Adopt encrypt-in-transit control for both inbound (C04) and outbound (C05) transport.
+        - reference-id: CCC.Core.CN03
+          remarks: Adopt MFA requirement for streamable-HTTP shared instances (C03).
+        - reference-id: CCC.Core.CN05
+          remarks: Adopt untrusted entity prevention for streamable-HTTP shared instances (C03).
 
 controls:
   - id: GEMARAPROJ.GEMARA.MCP.C01
     family: resilience
     title: Validation input size and resource limits
+
     objective: Reduce the risk of denial of service from excessively large or complex YAML by enforcing configurable size and resource limits on artifact validation.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR03
-            strength: 8
             remarks: Resource exhaustion via large YAML
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SC-5
-            strength: 6
             remarks: Denial of Service Protection
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C01.TR01
+    
         text: When YAML is submitted for validation, the server MUST reject or truncate payloads exceeding a configured maximum size (bytes).
         applicability:
           - stdio
@@ -89,27 +92,25 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C02
     family: resilience
     title: Schema and lexicon source availability
+
     objective: Reduce the risk of service unavailability when schema or lexicon sources are unreachable by using caching, version pinning, or graceful degradation so artifact authoring can continue or fail predictably.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR01
-            strength: 7
             remarks: Lexicon unavailable or degraded
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR04
-            strength: 7
             remarks: Schema source unavailable
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR09
-            strength: 7
             remarks: Guided prompts unavailable or degraded
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: CP-10
-            strength: 5
             remarks: Information System Recovery and Reconstitution
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C02.TR01
+    
         text: When the schema or lexicon source is unavailable, the server MUST return a defined error or use a cached copy when available; MUST NOT hang indefinitely.
         applicability:
           - stdio
@@ -117,72 +118,68 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C03
     family: access-controls
     title: Authentication for shared (streamable-HTTP) instances
+
     objective: Reduce the risk of unauthorized use of the MCP server when it is exposed over streamable HTTP (shared instance) by requiring authentication.
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: AC-2
-            strength: 6
             remarks: Account Management
           - reference-id: IA-2
-            strength: 6
             remarks: Identification and Authentication
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C03.TR01
+    
         text: When the server is run with streamable HTTP transport, the server MUST require authentication before accepting tool or prompt requests.
         applicability:
           - streamable-http
   - id: GEMARAPROJ.GEMARA.MCP.C04
     family: transport-security
     title: HTTPS for inbound connections
+
     objective: Reduce the risk of eavesdropping or tampering on the channel over which clients send requests to the MCP server (passive ingestion) by requiring HTTPS when the server is exposed over streamable HTTP.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR08
-            strength: 4
             remarks: Unprotected inbound channel can increase exposure to injection or tampering
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SC-8
-            strength: 7
             remarks: Transmission Confidentiality and Integrity
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C04.TR01
+    
         text: When the server is exposed over streamable HTTP transport, all inbound connections MUST use HTTPS (TLS).
         applicability:
           - streamable-http
   - id: GEMARAPROJ.GEMARA.MCP.C05
     family: transport-security
     title: HTTPS and integrity for outbound endpoints
+
     objective: Reduce the risk of eavesdropping or tampering on the channel over which the server fetches schema, lexicon, or other resources from external endpoints (active ingestion) by requiring HTTPS and verifying TLS and, where applicable, certificate or content integrity.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR04
-            strength: 6
             remarks: Schema source unavailable
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR05
-            strength: 6
             remarks: Schema cache poisoning
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR07
-            strength: 6
             remarks: Stale or wrong schema version
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR11
-            strength: 9
             remarks: Network interception of external fetches
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SC-8
-            strength: 6
             remarks: Transmission Confidentiality and Integrity
           - reference-id: SI-10
-            strength: 6
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C05.TR01
+    
         text: When the server fetches schema, lexicon, or other resources from external URLs, it MUST use HTTPS and MUST verify TLS (and, where supported, certificate or content integrity).
         applicability:
           - stdio
@@ -190,35 +187,33 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C06
     family: data-integrity
     title: Schema and lexicon version and cache integrity
+
     objective: Reduce the risk of stale or corrupted schema or lexicon data by pinning or validating versions and ensuring cache integrity so validation and documentation reflect the intended source.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR02
-            strength: 7
             remarks: Stale or wrong lexicon version
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR05
-            strength: 7
             remarks: Schema cache poisoning
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR07
-            strength: 7
             remarks: Stale or wrong schema version
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SI-7
-            strength: 6
             remarks: Software, Firmware, and Information Integrity
           - reference-id: SA-12
-            strength: 6
             remarks: Supply Chain Protection
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C06.TR01
+    
         text: The server MUST use a pinned or declared schema/lexicon version (or validate integrity of fetched content).
         applicability:
           - stdio
           - streamable-http
       - id: GEMARAPROJ.GEMARA.MCP.C06.TR02
+    
         text: Cached schema or lexicon data MUST be validated (e.g. checksum or signature) before use.
         applicability:
           - stdio
@@ -226,21 +221,21 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C07
     family: data-integrity
     title: Validation bypass prevention
+
     objective: Reduce the risk that invalid or non-compliant artifacts are accepted as valid by ensuring validation is always applied and cannot be circumvented (e.g. no bypass path, no parser quirks that skip checks).
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR06
-            strength: 8
             remarks: Validation bypass or false acceptance
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SI-10
-            strength: 7
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C07.TR01
+    
         text: When artifact validation is invoked, the server MUST run the full validation against the declared schema and MUST NOT provide a path to skip or bypass validation.
         applicability:
           - stdio
@@ -248,21 +243,21 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C08
     family: data-integrity
     title: Prompt injection resistance
+
     objective: Reduce the risk that user or third-party content in prompts or artifact drafts causes the LLM to ignore wizard instructions, produce invalid or malicious artifacts, or leak sensitive data by using injection-resistant prompt design and clear separation of instructions from user input.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR08
-            strength: 8
             remarks: Prompt injection
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SI-10
-            strength: 7
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C08.TR01
+    
         text: Guided artifact-creation prompts MUST structure content so that user-supplied input is clearly delimited and treated as data, not as executable instructions.
         applicability:
           - stdio
@@ -270,32 +265,31 @@ controls:
   - id: GEMARAPROJ.GEMARA.MCP.C09
     family: data-integrity
     title: Upstream resource integrity verification
+
     objective: Reduce the risk of supply chain compromise by verifying the integrity of externally fetched resources (lexicon, schema) against known-good checksums or signatures before use or caching.
-    threat-mappings:
+    threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR10
-            strength: 8
             remarks: Upstream supply chain compromise
           - reference-id: GEMARAPROJ.GEMARA.MCP.THR11
-            strength: 6
             remarks: Integrity check detects tampered content even if HTTPS is bypassed
-    guideline-mappings:
+    guidelines:
       - reference-id: NIST-800-53
         entries:
           - reference-id: SA-12
-            strength: 7
             remarks: Supply Chain Protection
           - reference-id: SI-7
-            strength: 7
             remarks: Software, Firmware, and Information Integrity
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C09.TR01
+    
         text: When fetching external resources (lexicon, schema), the server MUST verify the content against a declared checksum or cryptographic signature before serving or caching it.
         applicability:
           - stdio
           - streamable-http
       - id: GEMARAPROJ.GEMARA.MCP.C09.TR02
+    
         text: When integrity verification fails for a fetched resource, the server MUST discard the response and MUST return an error to the caller.
         applicability:
           - stdio

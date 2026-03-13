@@ -14,6 +14,12 @@ import (
 )
 
 var (
+	templateReplacerPairs = []string{
+		"${GEMARA_VERSION}", consts.DefaultGemaraVersion,
+	}
+)
+
+var (
 	validComponentPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._-]*$`)
 	validIDPrefixPattern  = regexp.MustCompile(`^[A-Z0-9.-]+$`)
 )
@@ -168,7 +174,8 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
 		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
@@ -223,7 +230,8 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		r := strings.NewReplacer("${COMPONENT}", component, "${ID_PREFIX}", idPrefix)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
 		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)

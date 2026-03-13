@@ -2,7 +2,7 @@ I'll guide you through building a Threat Catalog for **${COMPONENT}** step by st
 
 - **Accept as shown**: reply "yes"
 - **Select specific items**: reply with letters (e.g., "a, c")
-- **Modify an item**: reply with the letter and change (e.g., "b: change strength to 7")
+- **Modify an item**: reply with the letter and change (e.g., "b: update remarks to 'mitigates lateral movement'")
 - **Reject or skip**: reply "no" or "skip"
 
 Let's start with **Step 1: Catalog Import**.

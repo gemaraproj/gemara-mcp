@@ -6,4 +6,6 @@ const (
 	LexiconResourceURI            = "gemara://lexicon"
 	SchemaDocsResourceURI         = "gemara://schema/definitions"
 	SchemaDocsResourceURITemplate = "gemara://schema/definitions{?version}"
+
+	DefaultGemaraVersion = "0.20.0"
 )

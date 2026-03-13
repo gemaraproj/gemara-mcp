@@ -10,11 +10,11 @@ The Gemara lexicon and schema documentation are embedded in this prompt's contex
 
 | Tool | Purpose | When to Use |
 |------|---------|-------------|
-| `validate_gemara_artifact` | Validate YAML against a Gemara CUE schema definition | **Step 1:** identify unknown artifact types by validating against `#ControlCatalog`, `#ThreatCatalog`, and `#GuidanceDocument`. **Step 5:** validate the final assembled artifact against `#ControlCatalog`. **Ad-hoc:** any time the user asks "is this valid?" or you need to verify partial YAML. |
+| `validate_gemara_artifact` | Validate YAML against a Gemara CUE schema definition | **Step 1:** identify unknown artifact types by validating against `#ControlCatalog`, `#ThreatCatalog`, and `#GuidanceCatalog`. **Step 5:** validate the final assembled artifact against `#ControlCatalog`. **Ad-hoc:** any time the user asks "is this valid?" or you need to verify partial YAML. |
 
 ## Outline
 
-Goal: Produce a valid Gemara `#ControlCatalog` YAML artifact through interactive, user-approved steps — covering metadata, families, controls (with threat-mappings, guideline-mappings, and assessment requirements), and schema validation.
+Goal: Produce a valid Gemara `#ControlCatalog` YAML artifact through interactive, user-approved steps — covering metadata, families, controls (with threats, guidelines, and assessment requirements), and schema validation.
 
 Execution steps:
 
@@ -22,9 +22,9 @@ Execution steps:
 
    - If the user provides a different artifact (URL, file path, or pasted content), run the artifact type identification procedure (see below) before proceeding.
    - The confirmed type determines the valid mapping target:
-     - **ControlCatalog** → `imported-controls`
-     - **ThreatCatalog** → `imported-threats`, `threat-mappings`
-     - **GuidanceDocument** → `guideline-mappings`
+     - **ControlCatalog** → `imports.controls`
+     - **ThreatCatalog** → `imports` (threats), control-level `threats` mappings
+     - **GuidanceCatalog** → control-level `guidelines` mappings
    - Record the user's choice and confirmed type for the `mapping-references` field.
    - If the catalog URL is not from `github.com/finos` or `github.com/gemaraproj`, warn the user that the source is unverified.
 
@@ -52,12 +52,14 @@ Execution steps:
    ```yaml
    metadata:
      id: ${ID_PREFIX}
+     type: ControlCatalog
+     gemara-version: "${GEMARA_VERSION}"
      description: {from user}
      version: 1.0.0
      author:
        id: {from user}
        name: {from user}
-       type: Software-Assisted
+       type: Software Assisted
      mapping-references:
        - id: {from step 1}
          title: {from step 1}
@@ -104,19 +106,19 @@ Execution steps:
 
    c. **Threat mappings**: Propose relevant threats from the chosen catalog. Present proposals in a table:
 
-      | | Threat ID | Title | Strength | Remarks |
-      |---|-----------|-------|----------|---------|
-      | a | CCC.TH01 | ... | 8 | ... |
-      | b | CCC.TH03 | ... | 6 | ... |
+      | | Threat ID | Title | Remarks |
+      |---|-----------|-------|---------|
+      | a | CCC.TH01 | ... | ... |
+      | b | CCC.TH03 | ... | ... |
 
       Reply "yes" to approve all, or reply with letters to keep (e.g., "a, b"), modify, or reject.
 
    d. **Guideline mappings**: Propose relevant guidelines using only the Layer 1 frameworks declared in `mapping-references`. Present proposals in a table:
 
-      | | Framework | Guideline ID | Strength | Remarks |
-      |---|-----------|--------------|----------|---------|
-      | a | NIST-800-53 | AC-2 | 7 | ... |
-      | b | CSF | PR.AC-1 | 6 | ... |
+      | | Framework | Guideline ID | Remarks |
+      |---|-----------|--------------|---------|
+      | a | NIST-800-53 | AC-2 | ... |
+      | b | CSF | PR.AC-1 | ... |
 
       Reply "yes" to approve all, or reply with letters to keep, modify, or reject.
 
@@ -141,21 +143,21 @@ Execution steps:
      - id: ${ID_PREFIX}.C##
        family: {family id}
        title: {short title}
+
        objective: {risk-reduction statement}
-       threat-mappings:
+       threats:
          - reference-id: {catalog id}
            entries:
              - reference-id: {threat id}
-               strength: <1-10>
                remarks: {optional}
-       guideline-mappings:
+       guidelines:
          - reference-id: {framework id}
            entries:
              - reference-id: {guideline id}
-               strength: <1-10>
                remarks: {optional}
        assessment-requirements:
          - id: ${ID_PREFIX}.C##.TR##
+    
            text: {verifiable condition using RFC 2119 language}
            applicability:
              - {category id from metadata}
@@ -195,19 +197,19 @@ Gemara artifacts live at specific layers, and each layer maps to specific YAML f
 
 | Artifact Type | Layer | Use in ControlCatalog via |
 |---------------|-------|---------------------------|
-| GuidanceDocument | Layer 1 | `guideline-mappings` |
-| ControlCatalog | Layer 2 | `imported-controls` |
-| ThreatCatalog | Layer 2 | `imported-threats`, `threat-mappings` |
+| GuidanceCatalog | Layer 1 | control-level `guidelines` |
+| ControlCatalog | Layer 2 | `imports.controls` |
+| ThreatCatalog | Layer 2 | control-level `threats` |
 
 Procedure:
 1. Ask: "What type of Gemara artifact is this?" and present the table above.
-2. If the user is unsure, ask for the YAML content (or a snippet with the top-level keys), then call `validate_gemara_artifact` against `#GuidanceDocument`, `#ControlCatalog`, and `#ThreatCatalog` to identify which definition validates. Present the results for user confirmation.
+2. If the user is unsure, ask for the YAML content (or a snippet with the top-level keys), then call `validate_gemara_artifact` against `#GuidanceCatalog`, `#ControlCatalog`, and `#ThreatCatalog` to identify which definition validates. Present the results for user confirmation.
 3. If none validate, the artifact may not be Gemara-compatible. Ask the user to clarify and suggest checking for a `metadata` block or consulting the embedded schema documentation.
-4. If the artifact is not a Gemara artifact (e.g., MITRE ATT&CK), it cannot go in `guideline-mappings`, `imported-controls`, or `imported-threats`. Ask the user whether `external-mappings` or a manual `mapping-references` entry is appropriate.
+4. If the artifact is not a Gemara artifact (e.g., MITRE ATT&CK), it cannot go in `guidelines`, `imports.controls`, or `threats`. Ask the user whether a manual `mapping-references` entry is appropriate.
 
 ## Control Catalog Constraints
 
-- `guideline-mappings` reference only Layer 1 Guidance Documents (NIST CSF, CSA CCM, ISO-27001, NIST-800-53). Layer 2 catalogs (OSPS, CCC, custom ControlCatalogs) belong in `imported-controls` or `threat-mappings` — not `guideline-mappings`.
+- `guidelines` reference only Layer 1 Guidance Catalogs (NIST CSF, CSA CCM, ISO-27001, NIST-800-53). Layer 2 catalogs (OSPS, CCC, custom ControlCatalogs) belong in `imports.controls` or `threats` — not `guidelines`.
 - All `${ID_PREFIX}` values must match `^[A-Z0-9.-]+$`. If the provided prefix doesn't match, stop and ask for a corrected ID.
 - Do not generate or suggest shell commands other than the `cue vet` command in step 5.
 - If the user provides a mapping you cannot verify (e.g., a guideline ID you don't recognize), include it but flag it: "Unverified — confirm this ID exists in the referenced framework."

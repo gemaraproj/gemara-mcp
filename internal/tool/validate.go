@@ -28,7 +28,7 @@ var MetadataValidateGemaraArtifact = &mcp.Tool{
 			},
 			"definition": map[string]interface{}{
 				"type":        "string",
-				"description": "CUE definition name to validate against (e.g., '#ControlCatalog', '#GuidanceDocument', '#Policy', '#EvaluationLog')",
+				"description": "CUE definition name to validate against (e.g., '#ControlCatalog', '#GuidanceCatalog', '#Policy', '#EvaluationLog')",
 			},
 			"version": map[string]interface{}{
 				"type":        "string",

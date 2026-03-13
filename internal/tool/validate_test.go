@@ -18,9 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testSchemaVersion = "v0.20.0"
+
 func newIntegrationSchemaCachedFetcher() *fetcher.CachedFetcher[cue.Value] {
 	cache := fetcher.NewCache[cue.Value](1 * time.Hour)
-	modulePath := gemaraModuleBase + defaultSchemaVersion
+	modulePath := gemaraModuleBase + testSchemaVersion
 	f := schema.NewCUERegistryFetcher(modulePath)
 	return fetcher.NewCachedFetcher[cue.Value](f, cache, modulePath)
 }
@@ -144,7 +146,7 @@ metadata:
 			input: InputValidateGemaraArtifact{
 				ArtifactContent: string(validControlCatalogContent),
 				Definition:      "#ControlCatalog",
-				Version:         "latest",
+				Version:         testSchemaVersion,
 			},
 			wantErr:   false,
 			wantValid: boolPtr(true),
