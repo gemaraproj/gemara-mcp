@@ -1,5 +1,3 @@
----
----
 name: "Release"
 on:
   workflow_dispatch:
@@ -7,6 +5,7 @@ on:
     types: [ closed ]
     branches:
       - main
+
 permissions:
   contents: read
 
