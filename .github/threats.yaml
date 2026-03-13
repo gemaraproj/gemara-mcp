@@ -2,6 +2,8 @@ title: Gemara MCP Server Security Threat Catalog
 
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
+  type: ThreatCatalog
+  gemara-version: "0.20.0"
   description: >-
     The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
     It provides read-only access to lexicon terms and schema documentation,
@@ -11,7 +13,7 @@ metadata:
   author:
     id: gemara
     name: Gemara Authors
-    type: Software-Assisted
+    type: Software Assisted
   mapping-references:
     - id: CCC-Core
       title: FINOS Common Cloud Controls Core
@@ -30,7 +32,7 @@ capabilities:
     description: Read-only access to the Gemara lexicon for term definitions, fetched via HTTP and cached in-process (1hr TTL).
   - id: GEMARAPROJ.GEMARA.MCP.CAP02
     title: Artifact validation
-    description: Validates YAML artifacts against Gemara CUE schema definitions (ThreatCatalog, ControlCatalog, GuidanceDocument) using the CUE Go SDK and registry module.
+    description: Validates YAML artifacts against Gemara CUE schema definitions (ThreatCatalog, ControlCatalog, GuidanceCatalog) using the CUE Go SDK and registry module.
   - id: GEMARAPROJ.GEMARA.MCP.CAP03
     title: Schema documentation retrieval
     description: Read-only access to Gemara CUE schema documentation, fetched from the CUE registry via HTTP and cached in-process.
@@ -50,7 +52,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP01
             remarks: Threat affects availability of lexicon retrieval.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1498
@@ -63,7 +65,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP01
             remarks: Threat affects integrity of data provided by this capability.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1565
@@ -76,7 +78,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP02
             remarks: Exhaustion of validation service resources.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1499
@@ -91,7 +93,7 @@ threats:
             remarks: Unavailability of schema prevents this capability from functioning.
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
             remarks: Same schema source used for documentation retrieval.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1498
@@ -106,7 +108,7 @@ threats:
             remarks: Poisoned cache undermines integrity of validation results.
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
             remarks: Same cache may serve documentation.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1565
@@ -119,7 +121,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP02
             remarks: Bypass or misuse directly affects validation correctness.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1565
@@ -134,7 +136,7 @@ threats:
             remarks: Wrong schema version leads to incorrect validation outcomes.
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
             remarks: Same version used for documentation.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1195
@@ -147,7 +149,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP04
             remarks: Injection targets this capability's prompts and wizard flow.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1204
@@ -160,7 +162,7 @@ threats:
         entries:
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP04
             remarks: Unavailability directly affects this capability.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1498
@@ -177,7 +179,7 @@ threats:
             remarks: Malicious lexicon content served to consumers.
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
             remarks: Malicious schema docs served to consumers.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1195
@@ -194,7 +196,7 @@ threats:
             remarks: Tampered lexicon content served to consumers.
           - reference-id: GEMARAPROJ.GEMARA.MCP.CAP03
             remarks: Tampered schema docs served to consumers.
-    external-mappings:
+    vectors:
       - reference-id: MITRE-ATTACK
         entries:
           - reference-id: T1557

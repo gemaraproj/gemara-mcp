@@ -23,6 +23,9 @@ func NewCUERegistryFetcher(modulePath string) *CUERegistryFetcher {
 	return &CUERegistryFetcher{modulePath: modulePath}
 }
 
+// Fetch loads and builds the CUE module from the registry.
+// The context parameter is unused because the CUE load API does not
+// support context-based cancellation or timeouts.
 func (f *CUERegistryFetcher) Fetch(_ context.Context) (cue.Value, string, error) {
 	slog.Info("loading schema from registry", "module", f.modulePath)
 

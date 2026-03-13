@@ -7,15 +7,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var advisoryToolNames = []string{
-	"get_lexicon",
 	"validate_gemara_artifact",
-	"get_schema_docs",
+}
+
+var advisoryResourceURIs = []string{
+	consts.LexiconResourceURI,
+	consts.SchemaDocsResourceURI,
+}
+
+var advisoryResourceTemplateURIs = []string{
+	consts.SchemaDocsResourceURITemplate,
 }
 
 var artifactPromptNames = []string{
@@ -64,7 +72,29 @@ func promptNames(t *testing.T, session *mcp.ClientSession) []string {
 	return names
 }
 
-func TestAdvisoryModeRegistersToolsOnly(t *testing.T) {
+func resourceURIs(t *testing.T, session *mcp.ClientSession) []string {
+	t.Helper()
+	result, err := session.ListResources(context.Background(), nil)
+	require.NoError(t, err)
+	uris := make([]string, len(result.Resources))
+	for i, r := range result.Resources {
+		uris[i] = r.URI
+	}
+	return uris
+}
+
+func resourceTemplateURIs(t *testing.T, session *mcp.ClientSession) []string {
+	t.Helper()
+	result, err := session.ListResourceTemplates(context.Background(), nil)
+	require.NoError(t, err)
+	uris := make([]string, len(result.ResourceTemplates))
+	for i, rt := range result.ResourceTemplates {
+		uris[i] = rt.URITemplate
+	}
+	return uris
+}
+
+func TestAdvisoryModeRegistersToolsAndResources(t *testing.T) {
 	mode, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
 	server := mcp.NewServer(
@@ -75,17 +105,30 @@ func TestAdvisoryModeRegistersToolsOnly(t *testing.T) {
 
 	session := connectSession(t, server)
 	tools := toolNames(t, session)
+	resources := resourceURIs(t, session)
+	templates := resourceTemplateURIs(t, session)
 	prompts := promptNames(t, session)
 
 	for _, name := range advisoryToolNames {
 		assert.Contains(t, tools, name)
 	}
+	assert.NotContains(t, tools, "get_lexicon", "lexicon is now a resource, not a tool")
+	assert.NotContains(t, tools, "get_schema_docs", "schema docs is now a resource, not a tool")
+
+	for _, uri := range advisoryResourceURIs {
+		assert.Contains(t, resources, uri)
+	}
+
+	for _, uri := range advisoryResourceTemplateURIs {
+		assert.Contains(t, templates, uri)
+	}
+
 	for _, name := range artifactPromptNames {
 		assert.NotContains(t, prompts, name, "advisory mode must not register artifact prompts")
 	}
 }
 
-func TestArtifactModeRegistersToolsAndPrompts(t *testing.T) {
+func TestArtifactModeRegistersToolsResourcesAndPrompts(t *testing.T) {
 	mode, err := NewArtifactMode(1 * time.Hour)
 	require.NoError(t, err)
 	server := mcp.NewServer(
@@ -96,11 +139,22 @@ func TestArtifactModeRegistersToolsAndPrompts(t *testing.T) {
 
 	session := connectSession(t, server)
 	tools := toolNames(t, session)
+	resources := resourceURIs(t, session)
+	templates := resourceTemplateURIs(t, session)
 	prompts := promptNames(t, session)
 
 	for _, name := range advisoryToolNames {
 		assert.Contains(t, tools, name, "artifact mode must include all advisory tools")
 	}
+
+	for _, uri := range advisoryResourceURIs {
+		assert.Contains(t, resources, uri, "artifact mode must include all advisory resources")
+	}
+
+	for _, uri := range advisoryResourceTemplateURIs {
+		assert.Contains(t, templates, uri, "artifact mode must include all advisory resource templates")
+	}
+
 	for _, name := range artifactPromptNames {
 		assert.Contains(t, prompts, name, "artifact mode must register artifact prompts")
 	}
@@ -110,16 +164,78 @@ func TestAdvisoryModeMetadata(t *testing.T) {
 	mode, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
 	assert.Equal(t, "advisory", mode.Name())
-	assert.Contains(t, mode.Description(), "not create new ones")
-	assert.Contains(t, mode.Description(), "artifact mode")
+	assert.Contains(t, mode.Description(), "advisory mode")
+	assert.Contains(t, mode.Description(), "gemara://lexicon")
+	assert.Contains(t, mode.Description(), "gemara://schema/definitions{?version}")
+	assert.NotContains(t, mode.Description(), "- term:", "lexicon must not be embedded in description")
 }
 
 func TestArtifactModeMetadata(t *testing.T) {
 	mode, err := NewArtifactMode(1 * time.Hour)
 	require.NoError(t, err)
 	assert.Equal(t, "artifact", mode.Name())
-	assert.Contains(t, mode.Description(), "threat_assessment")
-	assert.Contains(t, mode.Description(), "control_catalog")
+	assert.Contains(t, mode.Description(), "artifact mode")
+	assert.Contains(t, mode.Description(), "validate_gemara_artifact")
+	assert.Contains(t, mode.Description(), "gemara://lexicon")
+	assert.Contains(t, mode.Description(), "gemara://schema/definitions{?version}")
+	assert.NotContains(t, mode.Description(), "- term:", "lexicon must not be embedded in description")
+}
+
+func TestParseSchemaDocsVersion(t *testing.T) {
+	tests := []struct {
+		name        string
+		uri         string
+		wantVersion string
+		wantErr     bool
+	}{
+		{
+			name:        "no version defaults to latest",
+			uri:         "gemara://schema/definitions",
+			wantVersion: "latest",
+		},
+		{
+			name:        "explicit latest",
+			uri:         "gemara://schema/definitions?version=latest",
+			wantVersion: "latest",
+		},
+		{
+			name:        "semver version",
+			uri:         "gemara://schema/definitions?version=v1.2.3",
+			wantVersion: "v1.2.3",
+		},
+		{
+			name:        "semver with prerelease",
+			uri:         "gemara://schema/definitions?version=v0.1.0-beta.1",
+			wantVersion: "v0.1.0-beta.1",
+		},
+		{
+			name:    "invalid version rejected",
+			uri:     "gemara://schema/definitions?version=not-semver",
+			wantErr: true,
+		},
+		{
+			name:    "path traversal rejected",
+			uri:     "gemara://schema/definitions?version=../../etc/passwd",
+			wantErr: true,
+		},
+		{
+			name:        "empty version param defaults to latest",
+			uri:         "gemara://schema/definitions?version=",
+			wantVersion: "latest",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version, err := parseSchemaDocsVersion(tt.uri)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantVersion, version)
+		})
+	}
 }
 
 func TestModeInterfaceCompliance(t *testing.T) {

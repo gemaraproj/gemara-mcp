@@ -18,17 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testSchemaVersion = "v0.20.0"
+
 func newIntegrationSchemaCachedFetcher() *fetcher.CachedFetcher[cue.Value] {
 	cache := fetcher.NewCache[cue.Value](1 * time.Hour)
-	modulePath := gemaraModuleBase + defaultSchemaVersion
+	modulePath := gemaraModuleBase + testSchemaVersion
 	f := schema.NewCUERegistryFetcher(modulePath)
 	return fetcher.NewCachedFetcher[cue.Value](f, cache, modulePath)
 }
 
 func TestValidateGemaraArtifact(t *testing.T) {
-	// Load test data
-	testDataDir := filepath.Join("testdata")
-	validControlCatalogPath := filepath.Join(testDataDir, "good-ccc.yaml")
+	validControlCatalogPath := filepath.Join("testdata", "good-ccc.yaml")
 	validControlCatalogContent, err := os.ReadFile(validControlCatalogPath)
 	require.NoError(t, err, "should be able to read test data file")
 
@@ -146,7 +146,7 @@ metadata:
 			input: InputValidateGemaraArtifact{
 				ArtifactContent: string(validControlCatalogContent),
 				Definition:      "#ControlCatalog",
-				Version:         "latest",
+				Version:         testSchemaVersion,
 			},
 			wantErr:   false,
 			wantValid: boolPtr(true),

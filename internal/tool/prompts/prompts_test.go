@@ -4,14 +4,60 @@ package prompts
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandleThreatAssessment(t *testing.T) {
+const (
+	testLexicon    = "test-lexicon-content"
+	testSchemaDocs = "test-schema-docs-content"
+)
+
+func mockLexiconFetcher(_ context.Context) (string, error) {
+	return testLexicon, nil
+}
+
+func failingLexiconFetcher(_ context.Context) (string, error) {
+	return "", fmt.Errorf("lexicon fetch error")
+}
+
+func mockSchemaFetcher(_ context.Context) (string, error) {
+	return testSchemaDocs, nil
+}
+
+func failingSchemaFetcher(_ context.Context) (string, error) {
+	return "", fmt.Errorf("network error")
+}
+
+func assertEmbeddedResources(t *testing.T, messages []*mcp.PromptMessage) {
+	t.Helper()
+	require.GreaterOrEqual(t, len(messages), 2, "need at least 2 messages for embedded resources")
+
+	lexiconMsg := messages[0]
+	assert.Equal(t, mcp.Role("user"), lexiconMsg.Role)
+	lexiconRes, ok := lexiconMsg.Content.(*mcp.EmbeddedResource)
+	require.True(t, ok, "first message should be EmbeddedResource")
+	assert.Equal(t, consts.LexiconResourceURI, lexiconRes.Resource.URI)
+	assert.Equal(t, "text/yaml", lexiconRes.Resource.MIMEType)
+	assert.Equal(t, testLexicon, lexiconRes.Resource.Text)
+
+	schemaMsg := messages[1]
+	assert.Equal(t, mcp.Role("user"), schemaMsg.Role)
+	schemaRes, ok := schemaMsg.Content.(*mcp.EmbeddedResource)
+	require.True(t, ok, "second message should be EmbeddedResource")
+	assert.Equal(t, consts.SchemaDocsResourceURI, schemaRes.Resource.URI)
+	assert.Equal(t, "text/plain", schemaRes.Resource.MIMEType)
+	assert.Equal(t, testSchemaDocs, schemaRes.Resource.Text)
+}
+
+func TestNewThreatAssessmentHandler(t *testing.T) {
+	handler := NewThreatAssessmentHandler(mockLexiconFetcher, mockSchemaFetcher)
+
 	tests := []struct {
 		name           string
 		arguments      map[string]string
@@ -20,7 +66,7 @@ func TestHandleThreatAssessment(t *testing.T) {
 		validateResult func(t *testing.T, result *mcp.GetPromptResult)
 	}{
 		{
-			name: "successful prompt generation",
+			name: "successful prompt generation with embedded resources",
 			arguments: map[string]string{
 				"component": "container runtime",
 				"id_prefix": "ACME.PLAT.CR",
@@ -29,16 +75,17 @@ func TestHandleThreatAssessment(t *testing.T) {
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
 				assert.Contains(t, result.Description, "container runtime")
 				assert.Contains(t, result.Description, "ACME.PLAT.CR")
-				require.Len(t, result.Messages, 3, "should have three messages (user, assistant, user)")
+				require.Len(t, result.Messages, 5, "2 embedded resources + 3 text messages")
 
-				instructionMsg := result.Messages[0]
+				assertEmbeddedResources(t, result.Messages)
+
+				instructionMsg := result.Messages[2]
 				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
 				text := instructionMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "container runtime")
 				assert.Contains(t, text, "ACME.PLAT.CR")
-				assert.Contains(t, text, "## Available Tools")
-				assert.Contains(t, text, "get_schema_docs")
-				assert.Contains(t, text, "get_lexicon")
+				assert.Contains(t, text, "## Embedded Resources")
+				assert.Contains(t, text, "## Available Tool")
 				assert.Contains(t, text, "**Catalog Import**")
 				assert.Contains(t, text, "**Scope and Metadata**")
 				assert.Contains(t, text, "**Identify Capabilities**")
@@ -48,7 +95,7 @@ func TestHandleThreatAssessment(t *testing.T) {
 				assert.Contains(t, text, "validate_gemara_artifact")
 				assert.Contains(t, text, "Privateer")
 
-				assistantMsg := result.Messages[1]
+				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
 				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, assistantText, "container runtime")
@@ -56,7 +103,7 @@ func TestHandleThreatAssessment(t *testing.T) {
 				assert.Contains(t, assistantText, "Step 1: Catalog Import")
 				assert.Contains(t, assistantText, "reply \"yes\"")
 
-				userMsg := result.Messages[2]
+				userMsg := result.Messages[4]
 				assert.Equal(t, mcp.Role("user"), userMsg.Role)
 				userText := userMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, userText, "container runtime")
@@ -122,7 +169,7 @@ func TestHandleThreatAssessment(t *testing.T) {
 			},
 			wantErr: false,
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
-				text := result.Messages[0].Content.(*mcp.TextContent).Text
+				text := result.Messages[2].Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "SEC.SLAM.MQ")
 				assert.Contains(t, text, "message queue")
 				assert.Contains(t, text, "id: SEC.SLAM.MQ")
@@ -224,7 +271,7 @@ func TestHandleThreatAssessment(t *testing.T) {
 				},
 			}
 
-			result, err := HandleThreatAssessment(ctx, req)
+			result, err := handler(ctx, req)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -243,7 +290,38 @@ func TestHandleThreatAssessment(t *testing.T) {
 	}
 }
 
-func TestHandleControlCatalog(t *testing.T) {
+func TestNewThreatAssessmentHandlerLexiconFetchError(t *testing.T) {
+	handler := NewThreatAssessmentHandler(failingLexiconFetcher, mockSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "threat_assessment",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching lexicon")
+}
+
+func TestNewThreatAssessmentHandlerSchemaFetchError(t *testing.T) {
+	handler := NewThreatAssessmentHandler(mockLexiconFetcher, failingSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "threat_assessment",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching schema docs")
+	assert.Contains(t, err.Error(), "network error")
+}
+
+func TestNewControlCatalogHandler(t *testing.T) {
+	handler := NewControlCatalogHandler(mockLexiconFetcher, mockSchemaFetcher)
+
 	tests := []struct {
 		name           string
 		arguments      map[string]string
@@ -252,7 +330,7 @@ func TestHandleControlCatalog(t *testing.T) {
 		validateResult func(t *testing.T, result *mcp.GetPromptResult)
 	}{
 		{
-			name: "successful prompt generation",
+			name: "successful prompt generation with embedded resources",
 			arguments: map[string]string{
 				"component": "container runtime",
 				"id_prefix": "ACME.PLAT.CR",
@@ -261,16 +339,17 @@ func TestHandleControlCatalog(t *testing.T) {
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
 				assert.Contains(t, result.Description, "container runtime")
 				assert.Contains(t, result.Description, "ACME.PLAT.CR")
-				require.Len(t, result.Messages, 3, "should have three messages (user, assistant, user)")
+				require.Len(t, result.Messages, 5, "2 embedded resources + 3 text messages")
 
-				instructionMsg := result.Messages[0]
+				assertEmbeddedResources(t, result.Messages)
+
+				instructionMsg := result.Messages[2]
 				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
 				text := instructionMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "container runtime")
 				assert.Contains(t, text, "ACME.PLAT.CR")
-				assert.Contains(t, text, "## Available Tools")
-				assert.Contains(t, text, "get_schema_docs")
-				assert.Contains(t, text, "get_lexicon")
+				assert.Contains(t, text, "## Embedded Resources")
+				assert.Contains(t, text, "## Available Tool")
 				assert.Contains(t, text, "**Catalog Import**")
 				assert.Contains(t, text, "**Scope and Metadata**")
 				assert.Contains(t, text, "**Define Control Families**")
@@ -281,7 +360,7 @@ func TestHandleControlCatalog(t *testing.T) {
 				assert.Contains(t, text, "Privateer")
 				assert.Contains(t, text, "#ControlCatalog")
 
-				assistantMsg := result.Messages[1]
+				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
 				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, assistantText, "container runtime")
@@ -289,7 +368,7 @@ func TestHandleControlCatalog(t *testing.T) {
 				assert.Contains(t, assistantText, "Step 1: Catalog Import")
 				assert.Contains(t, assistantText, "reply \"yes\"")
 
-				userMsg := result.Messages[2]
+				userMsg := result.Messages[4]
 				assert.Equal(t, mcp.Role("user"), userMsg.Role)
 				userText := userMsg.Content.(*mcp.TextContent).Text
 				assert.Contains(t, userText, "container runtime")
@@ -355,7 +434,7 @@ func TestHandleControlCatalog(t *testing.T) {
 			},
 			wantErr: false,
 			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
-				text := result.Messages[0].Content.(*mcp.TextContent).Text
+				text := result.Messages[2].Content.(*mcp.TextContent).Text
 				assert.Contains(t, text, "SEC.SLAM.MQ")
 				assert.Contains(t, text, "message queue")
 				assert.Contains(t, text, "id: SEC.SLAM.MQ")
@@ -448,7 +527,7 @@ func TestHandleControlCatalog(t *testing.T) {
 				},
 			}
 
-			result, err := HandleControlCatalog(ctx, req)
+			result, err := handler(ctx, req)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -465,6 +544,35 @@ func TestHandleControlCatalog(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewControlCatalogHandlerLexiconFetchError(t *testing.T) {
+	handler := NewControlCatalogHandler(failingLexiconFetcher, mockSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "control_catalog",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching lexicon")
+}
+
+func TestNewControlCatalogHandlerSchemaFetchError(t *testing.T) {
+	handler := NewControlCatalogHandler(mockLexiconFetcher, failingSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "control_catalog",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching schema docs")
+	assert.Contains(t, err.Error(), "network error")
 }
 
 func TestPromptControlCatalogMetadata(t *testing.T) {
