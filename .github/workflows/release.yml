@@ -58,3 +58,33 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  sign-and-verify:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      id-token: write
+    env:
+      IMAGE: ghcr.io/gemaraproj/gemara-mcp
+      IDENTITY: https://github.com/gemaraproj/gemara-mcp/.github/workflows/release.yml
+      OIDC_ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign image
+        run: cosign sign --yes "${IMAGE}:latest"
+
+      - name: Verify signature
+        run: |
+          cosign verify \
+            --certificate-identity-regexp="${IDENTITY}" \
+            --certificate-oidc-issuer="${OIDC_ISSUER}" \
+            "${IMAGE}:latest" > /dev/null
