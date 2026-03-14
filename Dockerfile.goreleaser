@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:5074667eecabac8ac5c5d395100a153a7b4e8426181cca36181cd019530f00c8
 
 ARG TARGETPLATFORM
 COPY $TARGETPLATFORM/gemara-mcp /bin/gemara-mcp
