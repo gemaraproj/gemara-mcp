@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package tool
+package server
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"cuelang.org/go/cue"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
+	"github.com/gemaraproj/gemara-mcp/internal/server/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/server/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package tool
+package server
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,13 +41,13 @@ func setupArtifactSession(t *testing.T) *mcp.ClientSession {
 func TestReadLexiconResource(t *testing.T) {
 	session := setupAdvisorySession(t)
 	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
-		URI: consts.LexiconResourceURI,
+		URI: LexiconResourceURI,
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Contents, 1)
 
 	content := result.Contents[0]
-	assert.Equal(t, consts.LexiconResourceURI, content.URI)
+	assert.Equal(t, LexiconResourceURI, content.URI)
 	assert.Equal(t, "text/yaml", content.MIMEType)
 	assert.Contains(t, content.Text, "term:")
 }
@@ -56,7 +55,7 @@ func TestReadLexiconResource(t *testing.T) {
 func TestReadLexiconResourceReturnsContent(t *testing.T) {
 	session := setupAdvisorySession(t)
 	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
-		URI: consts.LexiconResourceURI,
+		URI: LexiconResourceURI,
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Contents, 1)
@@ -66,13 +65,13 @@ func TestReadLexiconResourceReturnsContent(t *testing.T) {
 func TestReadSchemaDocsResource(t *testing.T) {
 	session := setupAdvisorySession(t)
 	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
-		URI: consts.SchemaDocsResourceURI,
+		URI: SchemaDocsResourceURI,
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Contents, 1)
 
 	content := result.Contents[0]
-	assert.Equal(t, consts.SchemaDocsResourceURI, content.URI)
+	assert.Equal(t, SchemaDocsResourceURI, content.URI)
 	assert.Equal(t, "text/plain", content.MIMEType)
 	assert.NotEmpty(t, content.Text)
 }
@@ -136,7 +135,7 @@ func TestArtifactModeResourceAccess(t *testing.T) {
 	session := setupArtifactSession(t)
 
 	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
-		URI: consts.LexiconResourceURI,
+		URI: LexiconResourceURI,
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Contents, 1)

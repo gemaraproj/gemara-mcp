@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package tool
+package server
 
 import (
 	"context"
@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"cuelang.org/go/cue"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/prompts"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
+	"github.com/gemaraproj/gemara-mcp/internal/server/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/server/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -104,20 +103,20 @@ func (a *ArtifactMode) Register(server *mcp.Server) {
 
 	fetchLexicon := a.lexiconFetcher()
 	fetchSchemaDocs := a.schemaDocsFetcher()
-	server.AddPrompt(prompts.PromptThreatAssessment, prompts.NewThreatAssessmentHandler(fetchLexicon, fetchSchemaDocs))
-	server.AddPrompt(prompts.PromptControlCatalog, prompts.NewControlCatalogHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(PromptThreatAssessment, NewThreatAssessmentHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(PromptControlCatalog, NewControlCatalogHandler(fetchLexicon, fetchSchemaDocs))
 }
 
 // lexiconFetcher returns a LexiconFetcher that always succeeds because
 // fetchLexicon falls back to the embedded lexicon on any remote failure.
-func (a *AdvisoryMode) lexiconFetcher() prompts.LexiconFetcher {
+func (a *AdvisoryMode) lexiconFetcher() LexiconFetcher {
 	return func(ctx context.Context) (string, error) {
 		content, _ := a.fetchLexicon(ctx)
 		return content, nil
 	}
 }
 
-func (a *AdvisoryMode) schemaDocsFetcher() prompts.SchemaDocsFetcher {
+func (a *AdvisoryMode) schemaDocsFetcher() SchemaDocsFetcher {
 	return func(ctx context.Context) (string, error) {
 		modulePath := gemaraModuleBase + defaultSchemaVersion
 		f := schema.NewCUERegistryFetcher(modulePath)

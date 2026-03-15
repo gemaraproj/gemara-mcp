@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool"
+	"github.com/gemaraproj/gemara-mcp/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 )
@@ -43,14 +43,14 @@ func serveCmd() *cobra.Command {
 		Example: "gemara-mcp serve\ngemara-mcp serve --mode advisory",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				mode tool.Mode
+				mode server.Mode
 				err  error
 			)
 			switch modeName {
 			case "advisory":
-				mode, err = tool.NewAdvisoryMode(defaultCacheTTL)
+				mode, err = server.NewAdvisoryMode(defaultCacheTTL)
 			case "artifact":
-				mode, err = tool.NewArtifactMode(defaultCacheTTL)
+				mode, err = server.NewArtifactMode(defaultCacheTTL)
 			default:
 				return fmt.Errorf("unknown mode %q: must be \"advisory\" or \"artifact\"", modeName)
 			}
