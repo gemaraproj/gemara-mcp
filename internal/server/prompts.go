@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package prompts
+package server
 
 import (
 	"context"
@@ -9,13 +9,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var (
 	templateReplacerPairs = []string{
-		"${GEMARA_VERSION}", consts.DefaultGemaraVersion,
+		"${GEMARA_VERSION}", DefaultGemaraVersion,
 	}
 )
 
@@ -65,7 +64,7 @@ func embeddedResourceMessages(lexicon string, schemaDocs string) []*mcp.PromptMe
 			Role: "user",
 			Content: &mcp.EmbeddedResource{
 				Resource: &mcp.ResourceContents{
-					URI:      consts.LexiconResourceURI,
+					URI:      LexiconResourceURI,
 					MIMEType: "text/yaml",
 					Text:     lexicon,
 				},
@@ -75,7 +74,7 @@ func embeddedResourceMessages(lexicon string, schemaDocs string) []*mcp.PromptMe
 			Role: "user",
 			Content: &mcp.EmbeddedResource{
 				Resource: &mcp.ResourceContents{
-					URI:      consts.SchemaDocsResourceURI,
+					URI:      SchemaDocsResourceURI,
 					MIMEType: "text/plain",
 					Text:     schemaDocs,
 				},
@@ -85,22 +84,22 @@ func embeddedResourceMessages(lexicon string, schemaDocs string) []*mcp.PromptMe
 }
 
 var (
-	//go:embed threat_assessment_system.md
+	//go:embed prompts/threat_assessment_system.md
 	threatAssessmentSystemTemplate string
 
-	//go:embed threat_assessment_assistant.md
+	//go:embed prompts/threat_assessment_assistant.md
 	threatAssessmentAssistantTemplate string
 
-	//go:embed threat_assessment_user.md
+	//go:embed prompts/threat_assessment_user.md
 	threatAssessmentUserTemplate string
 
-	//go:embed control_catalog_system.md
+	//go:embed prompts/control_catalog_system.md
 	controlCatalogSystemTemplate string
 
-	//go:embed control_catalog_assistant.md
+	//go:embed prompts/control_catalog_assistant.md
 	controlCatalogAssistantTemplate string
 
-	//go:embed control_catalog_user.md
+	//go:embed prompts/control_catalog_user.md
 	controlCatalogUserTemplate string
 )
 

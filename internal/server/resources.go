@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package tool
+package server
 
 import (
 	"context"
@@ -10,9 +10,8 @@ import (
 	"net/url"
 
 	"cuelang.org/go/cue"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/fetcher"
-	"github.com/gemaraproj/gemara-mcp/internal/tool/schema"
+	"github.com/gemaraproj/gemara-mcp/internal/server/fetcher"
+	"github.com/gemaraproj/gemara-mcp/internal/server/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -20,7 +19,7 @@ import (
 var EmbeddedLexicon string
 
 var ResourceLexicon = &mcp.Resource{
-	URI:         consts.LexiconResourceURI,
+	URI:         LexiconResourceURI,
 	Name:        "gemara-lexicon",
 	Title:       "Gemara Lexicon",
 	Description: "Term definitions for the Gemara security model.",
@@ -28,7 +27,7 @@ var ResourceLexicon = &mcp.Resource{
 }
 
 var ResourceSchemaDocs = &mcp.Resource{
-	URI:         consts.SchemaDocsResourceURI,
+	URI:         SchemaDocsResourceURI,
 	Name:        "gemara-schema-docs",
 	Title:       "Gemara Schema Documentation",
 	Description: "CUE schema definitions for all Gemara artifact types (latest version). Use the versioned resource template for a specific version.",
@@ -36,7 +35,7 @@ var ResourceSchemaDocs = &mcp.Resource{
 }
 
 var ResourceSchemaDocsTemplate = &mcp.ResourceTemplate{
-	URITemplate: consts.SchemaDocsResourceURITemplate,
+	URITemplate: SchemaDocsResourceURITemplate,
 	Name:        "gemara-schema-docs-versioned",
 	Title:       "Gemara Schema Documentation (versioned)",
 	Description: "CUE schema definitions for a specific Gemara module version. Accepts a semver version parameter (e.g., v1.2.3) or 'latest'.",

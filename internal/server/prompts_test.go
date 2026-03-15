@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package prompts
+package server
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,7 +41,7 @@ func assertEmbeddedResources(t *testing.T, messages []*mcp.PromptMessage) {
 	assert.Equal(t, mcp.Role("user"), lexiconMsg.Role)
 	lexiconRes, ok := lexiconMsg.Content.(*mcp.EmbeddedResource)
 	require.True(t, ok, "first message should be EmbeddedResource")
-	assert.Equal(t, consts.LexiconResourceURI, lexiconRes.Resource.URI)
+	assert.Equal(t, LexiconResourceURI, lexiconRes.Resource.URI)
 	assert.Equal(t, "text/yaml", lexiconRes.Resource.MIMEType)
 	assert.Equal(t, testLexicon, lexiconRes.Resource.Text)
 
@@ -50,7 +49,7 @@ func assertEmbeddedResources(t *testing.T, messages []*mcp.PromptMessage) {
 	assert.Equal(t, mcp.Role("user"), schemaMsg.Role)
 	schemaRes, ok := schemaMsg.Content.(*mcp.EmbeddedResource)
 	require.True(t, ok, "second message should be EmbeddedResource")
-	assert.Equal(t, consts.SchemaDocsResourceURI, schemaRes.Resource.URI)
+	assert.Equal(t, SchemaDocsResourceURI, schemaRes.Resource.URI)
 	assert.Equal(t, "text/plain", schemaRes.Resource.MIMEType)
 	assert.Equal(t, testSchemaDocs, schemaRes.Resource.Text)
 }
