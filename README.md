@@ -89,13 +89,14 @@ gemara-mcp serve --mode artifact
 
 ## Verifying Image Signatures
 
-Released container images are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC. Signatures are attached to the image digest, so verification works with any tag.
+Released container images are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC.
+Signatures are attached to the image manifest digest.
 
 ```bash
 cosign verify \
   --certificate-identity-regexp="https://github.com/gemaraproj/gemara-mcp/.github/workflows/release.yml" \
   --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-  ghcr.io/gemaraproj/gemara-mcp:latest
+  ghcr.io/gemaraproj/gemara-mcp@<DIGEST>
 ```
 
 ## Building Docker Image
