@@ -2,9 +2,9 @@
 
 The project welcomes your contributions whether they be:
 
-* reporting an [issue](https://github.com/gemaraproj/gemara-mcp/issues/new/choose)
-* making a code contribution ([create a fork](https://github.com/gemaraproj/gemara-mcp/fork))
-* updating our [docs](https://github.com/gemaraproj/gemara-mcp/blob/main/README.md)
+* Reporting an [issue](https://github.com/gemaraproj/gemara-mcp/issues/new/choose)
+* Making a code contribution ([create a fork](https://github.com/gemaraproj/gemara-mcp/fork))
+* Updating our [docs](https://github.com/gemaraproj/gemara-mcp/blob/main/README.md)
 
 ## PR guidelines
 
@@ -50,7 +50,7 @@ docker build --build-arg VERSION=$(git describe --tags --always) --build-arg BUI
 
 ## Reporting Issues
 
-Open an issue on GitHub with a clear description of the bug or feature request.
+[Open an issue](https://github.com/gemaraproj/gemara-mcp/issues) on GitHub with a clear description of the bug or feature request.
 
 ## License
 
