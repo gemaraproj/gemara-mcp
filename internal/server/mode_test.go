@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-package tool
+package server
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/gemaraproj/gemara-mcp/internal/tool/consts"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,12 +17,12 @@ var advisoryToolNames = []string{
 }
 
 var advisoryResourceURIs = []string{
-	consts.LexiconResourceURI,
-	consts.SchemaDocsResourceURI,
+	LexiconResourceURI,
+	SchemaDocsResourceURI,
 }
 
 var advisoryResourceTemplateURIs = []string{
-	consts.SchemaDocsResourceURITemplate,
+	SchemaDocsResourceURITemplate,
 }
 
 var artifactPromptNames = []string{
