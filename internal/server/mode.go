@@ -93,7 +93,7 @@ func (a *ArtifactMode) Name() string {
 func (a *ArtifactMode) Description() string {
 	return `Gemara artifact mode. Create, iterate on, and validate security artifacts.
 
-Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog.
+Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog, policy, risk_catalog.
 
 Offer wizard prompts for new artifacts. Validate frequently during iteration.`
 }
@@ -105,6 +105,8 @@ func (a *ArtifactMode) Register(server *mcp.Server) {
 	fetchSchemaDocs := a.schemaDocsFetcher()
 	server.AddPrompt(PromptThreatAssessment, NewThreatAssessmentHandler(fetchLexicon, fetchSchemaDocs))
 	server.AddPrompt(PromptControlCatalog, NewControlCatalogHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(PromptPolicy, NewPolicyHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(PromptRiskCatalog, NewRiskCatalogHandler(fetchLexicon, fetchSchemaDocs))
 }
 
 // lexiconFetcher returns a LexiconFetcher that always succeeds because
