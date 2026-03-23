@@ -1,0 +1,68 @@
+name: New Supported Workflow
+description: Propose a new guided workflow (wizard prompt) for the Gemara MCP Server.
+labels: ["workflow"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose a new guided artifact-creation workflow for the Gemara MCP Server.
+        Existing workflows include `threat_assessment` and `control_catalog`.
+  - type: input
+    id: workflow-name
+    attributes:
+      label: Workflow Name
+      description: Short identifier for the workflow (e.g. `guidance_catalog`).
+      placeholder: guidance_catalog
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this workflow produce and who is the target user?
+      placeholder: Describe the artifact type, target persona, and primary use case.
+    validations:
+      required: true
+  - type: input
+    id: gemara-definition
+    attributes:
+      label: Gemara Schema Definition
+      description: CUE definition the output artifact validates against (e.g. `#GuidanceCatalog`).
+      placeholder: "#GuidanceCatalog"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Server mode the workflow should be available in.
+      options:
+        - artifact
+        - advisory
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: wizard-steps
+    attributes:
+      label: Proposed Wizard Steps
+      description: Outline the step-by-step flow the wizard should follow.
+      placeholder: |
+        1. Import reference catalog
+        2. ...
+    validations:
+      required: false
+  - type: textarea
+    id: mapping-references
+    attributes:
+      label: Mapping References
+      description: External standards or catalogs the workflow should reference (e.g. NIST 800-53, MITRE ATT&CK, CCC Core).
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant context, links, or examples.
+    validations:
+      required: false
