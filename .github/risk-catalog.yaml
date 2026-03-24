@@ -1,0 +1,154 @@
+title: Gemara MCP Server Security Risk Catalog
+
+metadata:
+  id: GEMARAPROJ.GEMARA.MCP-RISK
+  type: RiskCatalog
+  gemara-version: "1.0.0-rc.0"
+  version: 1.0.0
+  description: >-
+    Organizational risks for operating the Gemara MCP Server: loss of
+    availability, loss of trust in validation and reference data, abuse of
+    guided prompts, and compromise of externally fetched lexicon or schema
+    content. Aligns with the sibling threat catalog in this repository.
+  author:
+    id: gemara
+    name: Gemara Authors
+    type: Software Assisted
+  mapping-references:
+    - id: GEMARAPROJ.GEMARA.MCP
+      title: Gemara MCP Server Security Threat Catalog
+      version: 1.0.0
+      url: https://github.com/gemaraproj/gemara-mcp
+      description: Layer 2 threat catalog for the Gemara MCP Server (threats.yaml)
+
+groups:
+  - id: availability-resilience
+    title: Availability & resilience
+    description: >-
+      Risks that the MCP server, validation path, or guided authoring flows
+      become unavailable, degraded, or too slow to rely on.
+    appetite: Low
+    max-severity: High
+
+  - id: integrity-trust
+    title: Integrity & trust in data and decisions
+    description: >-
+      Risks that lexicon, schema, cache, or validation outcomes are wrong,
+      stale, or manipulated so consumers make incorrect security decisions.
+    appetite: Minimal
+    max-severity: Critical
+
+  - id: supply-chain-transport
+    title: Supply chain & transport
+    description: >-
+      Risks from compromised upstream sources or network attackers
+      substituting content on the fetch path.
+    appetite: Minimal
+    max-severity: Critical
+
+risks:
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R01
+    title: Disruption of authoring and validation workflows
+    description: >-
+      Lexicon, schema, or wizard prompts are unavailable or severely degraded,
+      blocking or slowing Gemara artifact work.
+    group: availability-resilience
+    severity: High
+    impact: >-
+      Teams cannot validate or author artifacts on schedule; security reviews
+      and releases may be delayed or bypassed informally.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR01
+            remarks: Lexicon retrieval failure or outage.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR04
+            remarks: Schema source unreachable.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR09
+            remarks: Guided prompts degraded or unavailable.
+
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R02
+    title: Misleading reference data (lexicon or schema docs)
+    description: >-
+      Consumers rely on wrong or outdated lexicon or schema documentation,
+      producing artifacts that do not match intended Gemara semantics.
+    group: integrity-trust
+    severity: High
+    impact: >-
+      Apparent “compliant” artifacts may not meet organizational or Gemara
+      expectations; rework and audit findings.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR02
+            remarks: Stale or wrong lexicon version.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR07
+            remarks: Stale or wrong schema version for validation or docs.
+
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R03
+    title: Denial of service against validation
+    description: >-
+      Oversized or pathological YAML consumes excessive CPU or memory and
+      impairs validation for other callers.
+    group: availability-resilience
+    severity: Medium
+    impact: >-
+      Shared instances may become unstable; operators must restart or throttle
+      traffic.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR03
+            remarks: Resource exhaustion via large or complex YAML.
+
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R04
+    title: Loss of trust in validation results
+    description: >-
+      Cache poisoning, validation bypass, or incorrect schema application leads
+      to false positives or false negatives.
+    group: integrity-trust
+    severity: Critical
+    impact: >-
+      Invalid artifacts may ship as “valid,” or valid work may be blocked;
+      undermines the MCP server as a security gate.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR05
+            remarks: Schema cache poisoning.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR06
+            remarks: Validation bypass or false acceptance.
+
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R05
+    title: Unsafe or non-compliant wizard output
+    description: >-
+      Prompt injection or weak prompt structure causes LLMs to ignore wizard
+      rules, leak data, or draft non-compliant artifacts.
+    group: integrity-trust
+    severity: High
+    impact: >-
+      Published catalogs or policies may be incorrect or malicious; reputational
+      and compliance harm.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR08
+            remarks: Prompt injection affecting guided flows.
+
+  - id: GEMARAPROJ.GEMARA.MCP-RISK.R06
+    title: Compromise of upstream or in-transit fetched content
+    description: >-
+      Attackers alter lexicon or schema at the source or on the network; cached
+      bad content spreads to all consumers.
+    group: supply-chain-transport
+    severity: Critical
+    impact: >-
+      Widespread acceptance of tampered definitions; difficult incident
+      response until caches and sources are corrected.
+    threats:
+      - reference-id: GEMARAPROJ.GEMARA.MCP
+        entries:
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR10
+            remarks: Upstream supply chain compromise.
+          - reference-id: GEMARAPROJ.GEMARA.MCP.THR11
+            remarks: Network interception of external fetches.
