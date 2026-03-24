@@ -351,7 +351,7 @@ func TestNewControlCatalogHandler(t *testing.T) {
 				assert.Contains(t, text, "## Available Tool")
 				assert.Contains(t, text, "**Catalog Import**")
 				assert.Contains(t, text, "**Scope and Metadata**")
-				assert.Contains(t, text, "**Define Control Families**")
+				assert.Contains(t, text, "**Define Control Groups**")
 				assert.Contains(t, text, "**Define Controls**")
 				assert.Contains(t, text, "**Assemble and Validate**")
 				assert.Contains(t, text, "**Next Steps**")

@@ -1,0 +1,60 @@
+title: Gemara MCP Server Security Capability Catalog
+
+metadata:
+  id: GEMARAPROJ.GEMARA.MCP
+  type: CapabilityCatalog
+  gemara-version: "1.0.0-rc.0"
+  version: 1.0.0
+  description: >-
+    The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
+    It provides read-only access to lexicon terms and schema documentation,
+    YAML artifact validation against CUE schemas, and guided wizard prompts
+    for creating Threat Catalogs and Control Catalogs (Layer 2).
+  author:
+    id: gemara
+    name: Gemara Authors
+    type: Software Assisted
+  mapping-references:
+    - id: CCC-Core
+      title: FINOS Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
+      description: FINOS CCC core catalog of capabilities and threats for cloud controls
+    - id: MITRE-ATTACK
+      title: MITRE ATT&CK Enterprise
+      version: "16.1"
+      url: https://attack.mitre.org/techniques/enterprise/
+      description: MITRE ATT&CK knowledge base of adversary tactics and techniques
+
+groups:
+  - id: data-retrieval
+    title: Data retrieval
+    description: Read-only access to external data sources (lexicon, schema docs) and shared HTTP/caching infrastructure.
+  - id: validation
+    title: Validation
+    description: Artifact validation against Gemara CUE schemas.
+  - id: authoring
+    title: Authoring
+    description: Guided wizard-driven artifact creation workflows.
+
+capabilities:
+  - id: GEMARAPROJ.GEMARA.MCP.CAP01
+    title: Lexicon retrieval
+    description: Read-only access to the Gemara lexicon for term definitions, fetched via HTTP and cached in-process (1hr TTL).
+    group: data-retrieval
+  - id: GEMARAPROJ.GEMARA.MCP.CAP02
+    title: Artifact validation
+    description: Validates YAML artifacts against Gemara CUE schema definitions (ThreatCatalog, ControlCatalog, GuidanceCatalog) using the CUE Go SDK and registry module.
+    group: validation
+  - id: GEMARAPROJ.GEMARA.MCP.CAP03
+    title: Schema documentation retrieval
+    description: Read-only access to Gemara CUE schema documentation, fetched from the CUE registry via HTTP and cached in-process.
+    group: data-retrieval
+  - id: GEMARAPROJ.GEMARA.MCP.CAP04
+    title: Guided artifact creation prompts
+    description: Exposes MCP prompts for guided wizard-driven creation of Threat Catalogs and Control Catalogs (Layer 2), available only in artifact mode.
+    group: authoring
+  - id: GEMARAPROJ.GEMARA.MCP.CAP05
+    title: External resource fetching and caching
+    description: HTTP client that fetches remote resources (lexicon, schema docs) from GitHub and the CUE registry, with an in-process TTL cache (1hr default). Shared infrastructure for CAP01 and CAP03.
+    group: data-retrieval
