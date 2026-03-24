@@ -179,7 +179,7 @@ Execution steps:
 
      ```bash
      go install cuelang.org/go/cmd/cue@latest
-     cue vet -c -d '#RiskCatalog' github.com/gemaraproj/gemara@latest risks.yaml
+     cue vet -c -d '#RiskCatalog' github.com/gemaraproj/gemara@v1.0.0-rc.0 risks.yaml
      ```
 
 6. **Next Steps** — After validation succeeds:

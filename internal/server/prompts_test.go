@@ -643,6 +643,8 @@ func TestNewPolicyHandler(t *testing.T) {
 				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
 				assert.Contains(t, text, "#Policy")
+				assert.Contains(t, text, `gemara-version: "1.0.0-rc.0"`)
+				assert.Contains(t, text, "github.com/gemaraproj/gemara@v1.0.0-rc.0")
 
 				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
@@ -884,6 +886,8 @@ func TestNewRiskCatalogHandler(t *testing.T) {
 				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
 				assert.Contains(t, text, "#RiskCatalog")
+				assert.Contains(t, text, `gemara-version: "1.0.0-rc.0"`)
+				assert.Contains(t, text, "github.com/gemaraproj/gemara@v1.0.0-rc.0")
 
 				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
