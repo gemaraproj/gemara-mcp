@@ -1,18 +1,15 @@
-# Gemara MCP Server Security Control Catalog (Layer 2)
-# ID prefix: GEMARAPROJ.GEMARA.MCP
-
 title: Gemara MCP Server Security Control Catalog
 
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
   type: ControlCatalog
-  gemara-version: "0.20.0"
+  gemara-version: "1.0.0-rc.0"
+  version: 1.0.0
   description: >-
     The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
     It provides read-only access to lexicon terms and schema documentation,
     YAML artifact validation against CUE schemas, and guided wizard prompts
     for creating Threat Catalogs and Control Catalogs (Layer 2).
-  version: 1.0.0
   author:
     id: gemara
     name: Gemara Authors
@@ -33,7 +30,17 @@ metadata:
       version: 1.0.0
       url: https://github.com/gemaraproj/gemara-mcp
       description: Threat catalog for the Gemara MCP Server (threats.yaml)
-  applicability-categories:
+    - id: GEMARAPROJ.GEMARA.MCP-RISK
+      title: Gemara MCP Server Security Risk Catalog
+      version: 1.0.0
+      url: https://github.com/gemaraproj/gemara-mcp
+      description: Risk catalog for the Gemara MCP Server (risk-catalog.yaml)
+    - id: GEMARAPROJ.GEMARA.MCP.POL
+      title: Gemara MCP Server Security Policy
+      version: 1.0.0
+      url: https://github.com/gemaraproj/gemara-mcp
+      description: Layer 3 security policy for the Gemara MCP Server (policy.yaml)
+  applicability-groups:
     - id: stdio
       title: stdio (local)
       description: MCP server running over stdio; local or single-user instance.
@@ -41,7 +48,7 @@ metadata:
       title: Streamable HTTP (shared)
       description: MCP server running over streamable HTTP; shared or multi-tenant instance (future).
 
-families:
+groups:
   - id: resilience
     title: Resilience
     description: Controls that reduce risk of service unavailability, resource exhaustion, or degraded behavior (lexicon, validation, schema, prompts).
@@ -56,22 +63,21 @@ families:
     description: Controls that ensure correct schema/lexicon version, cache integrity, and validation correctness (stale, poisoned, or bypass).
 
 imports:
-  controls:
-    - reference-id: CCC-Core
-      entries:
-        - reference-id: CCC.Core.CN01
-          remarks: Adopt encrypt-in-transit control for both inbound (C04) and outbound (C05) transport.
-        - reference-id: CCC.Core.CN03
-          remarks: Adopt MFA requirement for streamable-HTTP shared instances (C03).
-        - reference-id: CCC.Core.CN05
-          remarks: Adopt untrusted entity prevention for streamable-HTTP shared instances (C03).
+  - reference-id: CCC-Core
+    entries:
+      - reference-id: CCC.Core.CN01
+        remarks: Adopt encrypt-in-transit control for both inbound (C04) and outbound (C05) transport.
+      - reference-id: CCC.Core.CN03
+        remarks: Adopt MFA requirement for streamable-HTTP shared instances (C03).
+      - reference-id: CCC.Core.CN05
+        remarks: Adopt untrusted entity prevention for streamable-HTTP shared instances (C03).
 
 controls:
   - id: GEMARAPROJ.GEMARA.MCP.C01
-    family: resilience
     title: Validation input size and resource limits
-
     objective: Reduce the risk of denial of service from excessively large or complex YAML by enforcing configurable size and resource limits on artifact validation.
+    group: resilience
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -84,16 +90,16 @@ controls:
             remarks: Denial of Service Protection
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C01.TR01
-    
         text: When YAML is submitted for validation, the server MUST reject or truncate payloads exceeding a configured maximum size (bytes).
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C02
-    family: resilience
     title: Schema and lexicon source availability
-
     objective: Reduce the risk of service unavailability when schema or lexicon sources are unreachable by using caching, version pinning, or graceful degradation so artifact authoring can continue or fail predictably.
+    group: resilience
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -110,16 +116,16 @@ controls:
             remarks: Information System Recovery and Reconstitution
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C02.TR01
-    
         text: When the schema or lexicon source is unavailable, the server MUST return a defined error or use a cached copy when available; MUST NOT hang indefinitely.
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C03
-    family: access-controls
     title: Authentication for shared (streamable-HTTP) instances
-
     objective: Reduce the risk of unauthorized use of the MCP server when it is exposed over streamable HTTP (shared instance) by requiring authentication.
+    group: access-controls
+    state: Active
     guidelines:
       - reference-id: NIST-800-53
         entries:
@@ -129,15 +135,15 @@ controls:
             remarks: Identification and Authentication
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C03.TR01
-    
         text: When the server is run with streamable HTTP transport, the server MUST require authentication before accepting tool or prompt requests.
         applicability:
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C04
-    family: transport-security
     title: HTTPS for inbound connections
-
     objective: Reduce the risk of eavesdropping or tampering on the channel over which clients send requests to the MCP server (passive ingestion) by requiring HTTPS when the server is exposed over streamable HTTP.
+    group: transport-security
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -150,15 +156,15 @@ controls:
             remarks: Transmission Confidentiality and Integrity
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C04.TR01
-    
         text: When the server is exposed over streamable HTTP transport, all inbound connections MUST use HTTPS (TLS).
         applicability:
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C05
-    family: transport-security
     title: HTTPS and integrity for outbound endpoints
-
     objective: Reduce the risk of eavesdropping or tampering on the channel over which the server fetches schema, lexicon, or other resources from external endpoints (active ingestion) by requiring HTTPS and verifying TLS and, where applicable, certificate or content integrity.
+    group: transport-security
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -179,16 +185,16 @@ controls:
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C05.TR01
-    
         text: When the server fetches schema, lexicon, or other resources from external URLs, it MUST use HTTPS and MUST verify TLS (and, where supported, certificate or content integrity).
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C06
-    family: data-integrity
     title: Schema and lexicon version and cache integrity
-
     objective: Reduce the risk of stale or corrupted schema or lexicon data by pinning or validating versions and ensuring cache integrity so validation and documentation reflect the intended source.
+    group: data-integrity
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -207,22 +213,22 @@ controls:
             remarks: Supply Chain Protection
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C06.TR01
-    
         text: The server MUST use a pinned or declared schema/lexicon version (or validate integrity of fetched content).
         applicability:
           - stdio
           - streamable-http
+        state: Active
       - id: GEMARAPROJ.GEMARA.MCP.C06.TR02
-    
         text: Cached schema or lexicon data MUST be validated (e.g. checksum or signature) before use.
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C07
-    family: data-integrity
     title: Validation bypass prevention
-
     objective: Reduce the risk that invalid or non-compliant artifacts are accepted as valid by ensuring validation is always applied and cannot be circumvented (e.g. no bypass path, no parser quirks that skip checks).
+    group: data-integrity
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -235,16 +241,16 @@ controls:
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C07.TR01
-    
         text: When artifact validation is invoked, the server MUST run the full validation against the declared schema and MUST NOT provide a path to skip or bypass validation.
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C08
-    family: data-integrity
     title: Prompt injection resistance
-
     objective: Reduce the risk that user or third-party content in prompts or artifact drafts causes the LLM to ignore wizard instructions, produce invalid or malicious artifacts, or leak sensitive data by using injection-resistant prompt design and clear separation of instructions from user input.
+    group: data-integrity
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -257,16 +263,16 @@ controls:
             remarks: Information Input Validation
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C08.TR01
-    
         text: Guided artifact-creation prompts MUST structure content so that user-supplied input is clearly delimited and treated as data, not as executable instructions.
         applicability:
           - stdio
           - streamable-http
+        state: Active
   - id: GEMARAPROJ.GEMARA.MCP.C09
-    family: data-integrity
     title: Upstream resource integrity verification
-
     objective: Reduce the risk of supply chain compromise by verifying the integrity of externally fetched resources (lexicon, schema) against known-good checksums or signatures before use or caching.
+    group: data-integrity
+    state: Active
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -283,14 +289,14 @@ controls:
             remarks: Software, Firmware, and Information Integrity
     assessment-requirements:
       - id: GEMARAPROJ.GEMARA.MCP.C09.TR01
-    
         text: When fetching external resources (lexicon, schema), the server MUST verify the content against a declared checksum or cryptographic signature before serving or caching it.
         applicability:
           - stdio
           - streamable-http
+        state: Active
       - id: GEMARAPROJ.GEMARA.MCP.C09.TR02
-    
         text: When integrity verification fails for a fetched resource, the server MUST discard the response and MUST return an error to the caller.
         applicability:
           - stdio
           - streamable-http
+        state: Active

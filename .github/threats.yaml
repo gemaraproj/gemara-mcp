@@ -3,13 +3,13 @@ title: Gemara MCP Server Security Threat Catalog
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
   type: ThreatCatalog
-  gemara-version: "0.20.0"
+  gemara-version: "1.0.0-rc.0"
+  version: 1.0.0
   description: >-
     The Gemara MCP Server exposes tools to help with Gemara artifact authoring.
     It provides read-only access to lexicon terms and schema documentation,
     YAML artifact validation against CUE schemas, and guided wizard prompts
     for creating Threat Catalogs and Control Catalogs (Layer 2).
-  version: 1.0.0
   author:
     id: gemara
     name: Gemara Authors
@@ -25,28 +25,24 @@ metadata:
       version: "16.1"
       url: https://attack.mitre.org/techniques/enterprise/
       description: MITRE ATT&CK knowledge base of adversary tactics and techniques
+    - id: GEMARAPROJ.GEMARA.MCP
+      title: Gemara MCP Server Security Capability Catalog
+      version: 1.0.0
+      description: Capabilities extracted from Gemara MCP Server Security Threat Catalog
 
-capabilities:
-  - id: GEMARAPROJ.GEMARA.MCP.CAP01
-    title: Lexicon retrieval
-    description: Read-only access to the Gemara lexicon for term definitions, fetched via HTTP and cached in-process (1hr TTL).
-  - id: GEMARAPROJ.GEMARA.MCP.CAP02
-    title: Artifact validation
-    description: Validates YAML artifacts against Gemara CUE schema definitions (ThreatCatalog, ControlCatalog, GuidanceCatalog) using the CUE Go SDK and registry module.
-  - id: GEMARAPROJ.GEMARA.MCP.CAP03
-    title: Schema documentation retrieval
-    description: Read-only access to Gemara CUE schema documentation, fetched from the CUE registry via HTTP and cached in-process.
-  - id: GEMARAPROJ.GEMARA.MCP.CAP04
-    title: Guided artifact creation prompts
-    description: Exposes MCP prompts for guided wizard-driven creation of Threat Catalogs and Control Catalogs (Layer 2), available only in artifact mode.
-  - id: GEMARAPROJ.GEMARA.MCP.CAP05
-    title: External resource fetching and caching
-    description: HTTP client that fetches remote resources (lexicon, schema docs) from GitHub and the CUE registry, with an in-process TTL cache (1hr default). Shared infrastructure for CAP01 and CAP03.
+groups:
+  - id: tampering
+    title: Tampering
+    description: Threats that modify, corrupt, or substitute data, schemas, cache, validation logic, or prompt behavior.
+  - id: denial-of-service
+    title: Denial of Service
+    description: Threats that degrade or block availability of server capabilities through resource exhaustion, outages, or dependency failures.
 
 threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR01
     title: Lexicon unavailable or degraded
     description: Unavailability or high latency of lexicon retrieval (e.g. DoS, outage) could block or degrade artifact authoring workflows.
+    group: denial-of-service
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -60,6 +56,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR02
     title: Stale or wrong lexicon version
     description: Serving an outdated or wrong version of the lexicon could lead to inconsistent or non-compliant artifact authoring.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -73,6 +70,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR03
     title: Resource exhaustion via large YAML
     description: Excessively large or complex YAML inputs can exhaust CPU, memory, or time limits during parsing/validation, causing denial of service to the validation service.
+    group: denial-of-service
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -86,6 +84,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR04
     title: Schema source unavailable
     description: Unavailability of the Gemara schema (network, registry, or dependency failure) prevents validation from running and blocks artifact authoring workflows.
+    group: denial-of-service
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -101,6 +100,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR05
     title: Schema cache poisoning
     description: Corrupted or malicious schema data in cache leads to incorrect validation outcomes (accepting invalid artifacts or rejecting valid ones), undermining trust in the validation capability.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -116,6 +116,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR06
     title: Validation bypass or false acceptance
     description: Validation logic or schema is circumvented or misused so that invalid or non-compliant artifacts are accepted as valid (e.g. parser quirks, schema gaps, or misuse of the tool).
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -129,6 +130,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR07
     title: Stale or wrong schema version
     description: Validation runs against an outdated or incorrect schema version, producing misleading pass/fail results and a false sense of compliance.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -144,6 +146,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR08
     title: Prompt injection
     description: User or third-party content embedded in prompts or artifact drafts could cause the LLM to ignore wizard instructions, produce invalid or malicious artifacts, or leak sensitive data.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -157,6 +160,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR09
     title: Guided prompts unavailable or degraded
     description: Unavailability or degradation of the prompt/wizard service could block or hinder artifact creation workflows.
+    group: denial-of-service
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -170,6 +174,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR10
     title: Upstream supply chain compromise
     description: An adversary compromises the upstream source (GitHub lexicon repository or CUE registry) to inject malicious schema or lexicon content before it reaches the in-process cache, affecting all consumers of those resources.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -187,6 +192,7 @@ threats:
   - id: GEMARAPROJ.GEMARA.MCP.THR11
     title: Network interception of external fetches
     description: A man-in-the-middle attacker intercepts HTTP requests to lexicon or schema endpoints, substituting tampered content that is then cached and served to users.
+    group: tampering
     capabilities:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:

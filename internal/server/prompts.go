@@ -343,7 +343,7 @@ func NewPolicyHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFet
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(PolicyRiskWizardGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -399,7 +399,7 @@ func NewRiskCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDo
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(PolicyRiskWizardGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 

@@ -332,7 +332,7 @@ Execution steps:
 
      ```bash
      go install cuelang.org/go/cmd/cue@latest
-     cue vet -c -d '#Policy' github.com/gemaraproj/gemara@v1.0.0-rc.0 policy.yaml
+     cue vet -c -d '#Policy' github.com/gemaraproj/gemara@v1 policy.yaml
      ```
 
 10. **Next Steps** — After validation succeeds:
