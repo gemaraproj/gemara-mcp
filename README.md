@@ -71,6 +71,7 @@ gemara-mcp serve --mode artifact
 | Tool | Description |
 |:---|:---|
 | `validate_gemara_artifact` | Validate YAML content against Gemara CUE schema definitions |
+| `migrate_gemara_artifact` | Migrate a Gemara artifact to v1 schema using CUE transformations |
 
 ### Resources
 
@@ -86,6 +87,8 @@ gemara-mcp serve --mode artifact
 |:---|:---|
 | `threat_assessment` | Interactive wizard for creating a Gemara-compatible Threat Catalog |
 | `control_catalog` | Interactive wizard for creating a Gemara-compatible Control Catalog |
+| `migration` | Interactive wizard that guides you through migrating Gemara artifacts from v0 to v1 schema |
+
 
 ## Verifying Image Signatures
 
