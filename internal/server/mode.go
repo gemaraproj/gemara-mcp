@@ -16,7 +16,8 @@ import (
 
 const (
 	defaultSchemaVersion = "latest"
-	gemaraModuleBase     = "github.com/gemaraproj/gemara@"
+	gemaraModulePath     = "github.com/gemaraproj/gemara"
+	gemaraModuleBase     = gemaraModulePath + "@"
 	lexiconBaseURL       = "https://raw.githubusercontent.com/gemaraproj/gemara/"
 	lexiconPathSuffix    = "/docs/lexicon.yaml"
 )
@@ -35,6 +36,7 @@ type Mode interface {
 type AdvisoryMode struct {
 	schemaCache       *fetcher.Cache[cue.Value]
 	lexiconCache      *fetcher.Cache[[]byte]
+	versionResolver   *fetcher.CachedFetcher[string]
 	lexiconURLBuilder *fetcher.URLBuilder
 }
 
@@ -44,10 +46,15 @@ func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating lexicon URL builder: %w", err)
 	}
+	versionCache := fetcher.NewCache[string](cacheTTL)
+	resolver := schema.NewCUEVersionResolver(gemaraModulePath)
+	versionResolver := fetcher.NewCachedFetcher[string](resolver, versionCache, gemaraModulePath)
+
 	slog.Info("mode initialized", "mode", "advisory")
 	return &AdvisoryMode{
 		schemaCache:       fetcher.NewCache[cue.Value](cacheTTL),
 		lexiconCache:      fetcher.NewCache[[]byte](cacheTTL),
+		versionResolver:   versionResolver,
 		lexiconURLBuilder: lexiconBuilder,
 	}, nil
 }
