@@ -14,7 +14,7 @@ The Gemara lexicon and schema documentation are embedded in this prompt's contex
 
 ## Outline
 
-Goal: Produce a valid Gemara `#RiskCatalog` YAML artifact through interactive, user-approved steps — covering metadata, `groups` (each a `#RiskCategory`: `#Group` fields plus `appetite` and optional `max-severity`), risks (each with a `group` id, severity, optional ownership, impact, and threat linkages), and schema validation.
+Goal: Produce a valid Gemara `#RiskCatalog` YAML artifact through interactive, user-approved steps — covering metadata, `groups` (each a `#RiskCategory`: `#Group` fields plus `appetite` and optional `max-severity`), risks (each with a `group` id, severity, optional ownership, impact, and threat linkages), and schema validation. The user may define their own **severity scale** (labels and meanings); you capture it and map it to Gemara's four stored severity values so it lines up with the appetite–`max-severity` matrix.
 
 Execution steps:
 
@@ -73,6 +73,28 @@ Execution steps:
    | Moderate | Organization tolerates residual risk when justified by value |
    | High | Organization is willing to operate with less restrictive controls |
 
+   **Severity scale (user-defined or default)** — Before the appetite–severity matrix, ask whether the organization uses its **own severity scale** (level names, count of levels, and what each level means). If yes, have them describe or paste it, then work with them to approve a **mapping table** from each of their levels to exactly one Gemara severity bucket (`Low`, `Medium`, `High`, or `Critical`). Those four values are what the YAML stores and what `max-severity` uses, so the mapping must stay consistent for the whole catalog. If they prefer the standard scale, adopt the default meanings below and skip a separate mapping table.
+
+   | Severity (Gemara / YAML) | Default meaning (when no custom scale) |
+   |--------------------------|----------------------------------------|
+   | Low | Minor consequence if realized; manageable within normal operations |
+   | Medium | Moderate consequence if realized; may impair specific functions or objectives |
+   | High | Severe consequence if realized; likely to disrupt core operations or objectives |
+   | Critical | Extreme consequence if realized; threatens organizational viability or mission |
+
+   **Appetite–severity matrix** — Before proposing concrete groups, ask whether the organization defines a mapping from each appetite level to the **highest severity it will accept as residual risk** in groups with that appetite (`max-severity`). If they have one, have them fill (or approve) a matrix; if not, propose a starter matrix for explicit approval. Example scaffold:
+
+   | Appetite | Default `max-severity` ceiling for groups with this appetite |
+   |----------|---------------------------------------------------------------|
+   | Minimal | {…} |
+   | Low | {…} |
+   | Moderate | {…} |
+   | High | {…} |
+
+   Each cell must be one of `Low`, `Medium`, `High`, or `Critical` (the same enum as group `max-severity` and as stored per-risk `severity`). If the user chose a custom scale above, express matrix expectations in **their** terms when discussing, but store these four values in YAML; the approved mapping ties the two together.
+
+   Treat each cell as the default cap when you draft `groups` entries: a group's `max-severity` should not exceed the matrix row for its `appetite` unless the user explicitly overrides and confirms (and individual risk `severity` values must still respect the group's `max-severity`, per step 4d).
+
    Present proposals in a table:
 
    | | ID | Title | Appetite | Max Severity | Description |
@@ -92,8 +114,6 @@ Execution steps:
        max-severity: {Low | Medium | High | Critical}
    ```
 
-   **Constraint**: If any `risks` are defined (step 4), at least one `groups` entry must exist (schema requires a non-empty `groups` list when `risks` is present).
-
 4. **Define Risks** — For each group from step 3, ask: "What risks could negatively impact this area?"
 
    For each risk, work through these sub-steps sequentially. Present each for approval before moving to the next.
@@ -104,16 +124,9 @@ Execution steps:
 
    c. **Group**: Set the risk's `group` field to the `id` of one of the groups defined in step 3.
 
-   d. **Severity**: Propose a severity level based on the risk's potential impact and likelihood:
+   d. **Severity**: Propose a severity using the **organization's scale** from step 3 (their level names and definitions). Translate the agreed rating to the stored YAML value using the mapping table so the field is one of `Low`, `Medium`, `High`, or `Critical`. When discussing with the user, prefer their labels; in the artifact, always emit the Gemara enum. If the proposed mapped severity exceeds the group's `max-severity`, flag it in plain language (and reference their scale if helpful): e.g. residual impact is above what the appetite matrix allows for this group—they may need to accept the gap, tighten controls, or adjust the group boundary after explicit approval.
 
-      | Severity | Meaning |
-      |----------|---------|
-      | Low | Minor consequence if realized; manageable within normal operations |
-      | Medium | Moderate consequence if realized; may impair specific functions or objectives |
-      | High | Severe consequence if realized; likely to disrupt core operations or objectives |
-      | Critical | Extreme consequence if realized; threatens organizational viability or mission |
-
-      If the proposed severity exceeds the `max-severity` for the assigned group, flag it: "This severity exceeds the max-severity boundary for the '{group}' group. The organization may need to either accept this risk or adjust the group boundary."
+      If no custom scale was defined, use the default severity meanings from step 3 when reasoning and labeling.
 
    e. **Owner** (optional): Propose RACI roles for managing this risk. Collect responsible, accountable, consulted, and informed parties.
 
@@ -209,13 +222,18 @@ Procedure:
 3. If none validate, the artifact may not be Gemara-compatible. Ask the user to clarify and suggest checking for a `metadata` block or consulting the embedded schema documentation.
 4. If the artifact is not a Gemara artifact (e.g., an enterprise risk register), it cannot go in `threats`. Ask the user whether a manual `mapping-references` entry is appropriate.
 
+## Schema constraints
+
+These are enforced by the `#RiskCatalog` CUE definition and `validate_gemara_artifact`; rely on the tool and embedded schema docs for the full rule set. Do not recite this list to the user unless they ask.
+
+- Each risk's `group` must reference an `id` that exists on an entry in `groups`.
+- Each risk's `severity` must be exactly one of `Low`, `Medium`, `High`, `Critical`. Organizational scales are conversational and documentary only unless reflected in this field through the user-approved mapping from step 3.
+
 ## Risk Catalog Constraints
 
-- `threats` references only Layer 2 Threat Catalogs. Control Catalogs and Guidance Catalogs are linked at the Policy level, not in the Risk Catalog.
-- If any `risks` are defined, at least one `groups` entry must exist.
-- Each risk's `group` must reference an `id` from the `groups` list.
-- `severity` must be one of: `Low`, `Medium`, `High`, `Critical`.
-- `appetite` must be one of: `Minimal`, `Low`, `Moderate`, `High`.
+Instructions for you, not wording to dump on the user. Keep artifacts Gemara-valid by calling `validate_gemara_artifact`; when something fails, fix the YAML and explain the change plainly—do not lecture about schema rules.
+
+- `threats` on risks reference only Layer 2 Threat Catalogs. Control Catalogs and Guidance Catalogs are linked at the Policy level, not in the Risk Catalog.
 - All `${ID_PREFIX}` values must match `^[A-Z0-9.-]+$`. If the provided prefix doesn't match, stop and ask for a corrected ID.
 - Do not generate or suggest shell commands other than the `cue vet` command in step 5.
 - If the user provides a mapping you cannot verify (e.g., a threat ID you don't recognize), include it but flag it: "Unverified — confirm this ID exists in the referenced catalog."
