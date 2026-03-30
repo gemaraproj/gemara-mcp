@@ -23,18 +23,6 @@ func setupAdvisorySession(t *testing.T) *mcp.ClientSession {
 	return connectSession(t, server)
 }
 
-func setupArtifactSession(t *testing.T) *mcp.ClientSession {
-	t.Helper()
-	mode, err := NewArtifactMode(1 * time.Hour)
-	require.NoError(t, err)
-	server := mcp.NewServer(
-		&mcp.Implementation{Name: "test", Version: "0.0.0"},
-		&mcp.ServerOptions{Instructions: mode.Description()},
-	)
-	mode.Register(server)
-	return connectSession(t, server)
-}
-
 func TestReadSchemaDocsTemplateResourceInvalidVersion(t *testing.T) {
 	session := setupAdvisorySession(t)
 	_, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{

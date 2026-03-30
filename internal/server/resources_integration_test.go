@@ -9,11 +9,24 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func setupArtifactSession(t *testing.T) *mcp.ClientSession {
+	t.Helper()
+	mode, err := NewArtifactMode(1 * time.Hour)
+	require.NoError(t, err)
+	server := mcp.NewServer(
+		&mcp.Implementation{Name: "test", Version: "0.0.0"},
+		&mcp.ServerOptions{Instructions: mode.Description()},
+	)
+	mode.Register(server)
+	return connectSession(t, server)
+}
 
 func TestReadLexiconResource(t *testing.T) {
 	session := setupAdvisorySession(t)
