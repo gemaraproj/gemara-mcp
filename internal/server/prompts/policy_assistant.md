@@ -5,6 +5,8 @@ I'll guide you through building a Policy for **${COMPONENT}** step by step. At e
 - **Modify an item**: reply with the letter and change (e.g., "b: update justification to 'residual risk within appetite'")
 - **Reject or skip**: reply "no" or "skip"
 
+When we produce YAML for the policy, it will be **comment-free** (no `#` lines) unless you ask for comments.
+
 Let's start with **Step 1: Catalog and Artifact Import**.
 
 A Policy imports Control Catalogs (Layer 2) to define which security controls apply, and optionally imports Guidance Catalogs (Layer 1), Risk Catalogs (Layer 3), and other Policies (Layer 3).

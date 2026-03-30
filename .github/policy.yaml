@@ -1,15 +1,9 @@
-title: Gemara MCP Server Security Policy
-
 metadata:
   id: GEMARAPROJ.GEMARA.MCP.POL
   type: Policy
   gemara-version: "1.0.0-rc.0"
   version: 1.0.0
-  description: >-
-    Security and resilience requirements for the Gemara MCP Server and its
-    deployment contexts (stdio and future streamable HTTP). Imports the
-    repository control catalog and maps organizational risks to those
-    controls for assessment and governance.
+  description: Security and resilience policy for Gemara MCP Server deployments and operations.
   author:
     id: gemara
     name: Gemara Authors
@@ -36,6 +30,7 @@ metadata:
       url: https://github.com/gemaraproj/gemara-mcp
       description: Risk catalog for the Gemara MCP Server (risk-catalog.yaml)
 
+title: Gemara MCP Server Security Policy
 contacts:
   responsible:
     - name: Gemara MCP Maintainers
@@ -56,19 +51,18 @@ scope:
       - Gemara MCP Server
       - MCP stdio transport
       - MCP streamable HTTP transport
-      - CUE-based Gemara schema validation
-      - GitHub-hosted Gemara lexicon
-      - CUE registry schema modules
+      - Gemara schema validation
+      - Gemara lexicon resource
+      - CUE registry modules
     sensitivity:
-      - Security artifact metadata
-      - Engineering security documentation
+      - public
     users:
-      - Developers and security engineers using the MCP server
-      - CI systems invoking validation tools
+      - Developers and security engineers
+      - CI validation jobs
   out:
     technologies:
-      - Downstream consumer applications not shipped in this repository
-      - Third-party LLM providers and model hosting
+      - Downstream consumer applications
+      - Third-party model hosting providers
 
 imports:
   catalogs:
@@ -106,26 +100,20 @@ adherence:
     - id: GEMARAPROJ.GEMARA.MCP.POL.EV01
       type: Intent
       mode: Automated
-      description: >-
-        CI runs unit tests and linters that exercise validation and server
-        startup paths for this repository.
+      description: CI runs tests and linters covering validation and server startup paths.
     - id: GEMARAPROJ.GEMARA.MCP.POL.EV02
-      type: Behavioral
+      type: Intent
       mode: Manual
-      description: >-
-        Maintainers review changes to prompts, fetch logic, and security
-        artifacts under .github/ before release.
+      description: Maintainers review prompts, fetch logic, and security artifacts before release.
   assessment-plans:
     - id: GEMARAPROJ.GEMARA.MCP.POL.AP01
       requirement-id: GEMARAPROJ.GEMARA.MCP.C01.TR01
       frequency: Per release
       evaluation-methods:
         - id: GEMARAPROJ.GEMARA.MCP.POL.AP01.EM01
-          type: Gate
-          mode: Automated
-          description: >-
-            Tests or static checks confirm a maximum YAML payload size is
-            enforced for validation requests.
+          type: Behavioral
+          mode: Manual
+          description: Tests or static checks confirm validation payload size limits are enforced.
     - id: GEMARAPROJ.GEMARA.MCP.POL.AP02
       requirement-id: GEMARAPROJ.GEMARA.MCP.C06.TR01
       frequency: Per release
@@ -133,9 +121,7 @@ adherence:
         - id: GEMARAPROJ.GEMARA.MCP.POL.AP02.EM01
           type: Behavioral
           mode: Manual
-          description: >-
-            Review of configuration and code confirms schema/lexicon version
-            pinning or declared version behavior.
+          description: Config and code review confirms schema or lexicon version pinning behavior.
     - id: GEMARAPROJ.GEMARA.MCP.POL.AP03
       requirement-id: GEMARAPROJ.GEMARA.MCP.C08.TR01
       frequency: Per release
@@ -143,24 +129,14 @@ adherence:
         - id: GEMARAPROJ.GEMARA.MCP.POL.AP03.EM01
           type: Behavioral
           mode: Manual
-          description: >-
-            Review of embedded wizard prompts confirms user input is delimited
-            and not treated as privileged instructions.
+          description: Prompt review confirms user input is delimited and not treated as instructions.
   enforcement-methods:
     - id: GEMARAPROJ.GEMARA.MCP.POL.ENF01
       type: Gate
       mode: Automated
-      description: >-
-        Pull requests must pass CI before merge; security-sensitive changes
-        require maintainer review.
+      description: Pull requests must pass CI, and security-sensitive changes require maintainer review.
     - id: GEMARAPROJ.GEMARA.MCP.POL.ENF02
-      type: Intent
+      type: Gate
       mode: Automated
-      description: >-
-        Release artifacts are built from tagged commits that passed CI on
-        the default branch.
-  non-compliance: >-
-    Findings are tracked via GitHub issues and security advisories as
-    appropriate. Critical gaps in validation or fetch integrity are treated as
-    release blockers until remediated or explicitly accepted with documented
-    rationale.
+      description: Releases are built from tagged commits that passed CI on the default branch.
+  non-compliance: Findings are tracked as issues or advisories; critical integrity gaps are release blockers until remediated or explicitly accepted.

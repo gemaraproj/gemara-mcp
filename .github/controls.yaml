@@ -30,16 +30,6 @@ metadata:
       version: 1.0.0
       url: https://github.com/gemaraproj/gemara-mcp
       description: Threat catalog for the Gemara MCP Server (threats.yaml)
-    - id: GEMARAPROJ.GEMARA.MCP-RISK
-      title: Gemara MCP Server Security Risk Catalog
-      version: 1.0.0
-      url: https://github.com/gemaraproj/gemara-mcp
-      description: Risk catalog for the Gemara MCP Server (risk-catalog.yaml)
-    - id: GEMARAPROJ.GEMARA.MCP.POL
-      title: Gemara MCP Server Security Policy
-      version: 1.0.0
-      url: https://github.com/gemaraproj/gemara-mcp
-      description: Layer 3 security policy for the Gemara MCP Server (policy.yaml)
   applicability-groups:
     - id: stdio
       title: stdio (local)
