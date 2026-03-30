@@ -1,15 +1,9 @@
-title: Gemara MCP Server Security Risk Catalog
-
 metadata:
   id: GEMARAPROJ.GEMARA.MCP-RISK
   type: RiskCatalog
   gemara-version: "1.0.0-rc.0"
   version: 1.0.0
-  description: >-
-    Organizational risks for operating the Gemara MCP Server: loss of
-    availability, loss of trust in validation and reference data, abuse of
-    guided prompts, and compromise of externally fetched lexicon or schema
-    content. Aligns with the sibling threat catalog in this repository.
+  description: Risk catalog for Gemara MCP Server operations, integrity, and upstream fetch trust.
   author:
     id: gemara
     name: Gemara Authors
@@ -21,42 +15,31 @@ metadata:
       url: https://github.com/gemaraproj/gemara-mcp
       description: Layer 2 threat catalog for the Gemara MCP Server (threats.yaml)
 
+title: Gemara MCP Server Security Risk Catalog
 groups:
   - id: availability-resilience
     title: Availability & resilience
-    description: >-
-      Risks that the MCP server, validation path, or guided authoring flows
-      become unavailable, degraded, or too slow to rely on.
+    description: Risks that reduce availability, responsiveness, or reliability of validation and authoring flows.
     appetite: Low
     max-severity: High
-
   - id: integrity-trust
     title: Integrity & trust in data and decisions
-    description: >-
-      Risks that lexicon, schema, cache, or validation outcomes are wrong,
-      stale, or manipulated so consumers make incorrect security decisions.
+    description: Risks that make schema, lexicon, cache, or validation outcomes stale, wrong, or manipulated.
     appetite: Minimal
-    max-severity: Critical
-
+    max-severity: High
   - id: supply-chain-transport
     title: Supply chain & transport
-    description: >-
-      Risks from compromised upstream sources or network attackers
-      substituting content on the fetch path.
+    description: Risks from compromised upstream sources or tampering on external fetch paths.
     appetite: Minimal
-    max-severity: Critical
+    max-severity: High
 
 risks:
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R01
     title: Disruption of authoring and validation workflows
-    description: >-
-      Lexicon, schema, or wizard prompts are unavailable or severely degraded,
-      blocking or slowing Gemara artifact work.
+    description: Lexicon, schema, or wizard prompts are unavailable or degraded, slowing or blocking artifact work.
     group: availability-resilience
     severity: High
-    impact: >-
-      Teams cannot validate or author artifacts on schedule; security reviews
-      and releases may be delayed or bypassed informally.
+    impact: Validation and authoring timelines slip; reviews and releases may be delayed or bypassed.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -69,14 +52,10 @@ risks:
 
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R02
     title: Misleading reference data (lexicon or schema docs)
-    description: >-
-      Consumers rely on wrong or outdated lexicon or schema documentation,
-      producing artifacts that do not match intended Gemara semantics.
+    description: Consumers use stale or incorrect lexicon or schema docs and produce semantically incorrect artifacts.
     group: integrity-trust
     severity: High
-    impact: >-
-      Apparent “compliant” artifacts may not meet organizational or Gemara
-      expectations; rework and audit findings.
+    impact: Artifacts appear compliant but miss expectations, causing rework and audit findings.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -87,14 +66,10 @@ risks:
 
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R03
     title: Denial of service against validation
-    description: >-
-      Oversized or pathological YAML consumes excessive CPU or memory and
-      impairs validation for other callers.
+    description: Oversized or pathological YAML consumes excessive resources and degrades validation for other callers.
     group: availability-resilience
     severity: Medium
-    impact: >-
-      Shared instances may become unstable; operators must restart or throttle
-      traffic.
+    impact: Shared instances become unstable and require throttling or restart.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -103,14 +78,10 @@ risks:
 
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R04
     title: Loss of trust in validation results
-    description: >-
-      Cache poisoning, validation bypass, or incorrect schema application leads
-      to false positives or false negatives.
+    description: Cache poisoning, validation bypass, or wrong schema selection causes false positives or false negatives.
     group: integrity-trust
-    severity: Critical
-    impact: >-
-      Invalid artifacts may ship as “valid,” or valid work may be blocked;
-      undermines the MCP server as a security gate.
+    severity: High
+    impact: Invalid artifacts may pass or valid artifacts may fail, undermining the server as a security gate.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -121,14 +92,10 @@ risks:
 
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R05
     title: Unsafe or non-compliant wizard output
-    description: >-
-      Prompt injection or weak prompt structure causes LLMs to ignore wizard
-      rules, leak data, or draft non-compliant artifacts.
+    description: Prompt injection or weak prompt structure yields unsafe, non-compliant, or data-leaking outputs.
     group: integrity-trust
     severity: High
-    impact: >-
-      Published catalogs or policies may be incorrect or malicious; reputational
-      and compliance harm.
+    impact: Published artifacts or policies can be incorrect or malicious, causing compliance and reputational harm.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
@@ -137,14 +104,10 @@ risks:
 
   - id: GEMARAPROJ.GEMARA.MCP-RISK.R06
     title: Compromise of upstream or in-transit fetched content
-    description: >-
-      Attackers alter lexicon or schema at the source or on the network; cached
-      bad content spreads to all consumers.
+    description: Attackers tamper with lexicon or schema at source or in transit, and poisoned content spreads via cache.
     group: supply-chain-transport
-    severity: Critical
-    impact: >-
-      Widespread acceptance of tampered definitions; difficult incident
-      response until caches and sources are corrected.
+    severity: High
+    impact: Tampered definitions can be widely accepted until sources and caches are corrected.
     threats:
       - reference-id: GEMARAPROJ.GEMARA.MCP
         entries:
