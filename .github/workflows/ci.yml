@@ -41,6 +41,10 @@ jobs:
       - name: Unit tests with coverage
         run: make test-coverage
 
+      - name: Integration tests
+        continue-on-error: true
+        run: make test-integration
+
       - name: Quality Gate - Test coverage shall be above threshold
         env:
           TESTCOVERAGE_THRESHOLD: 60
