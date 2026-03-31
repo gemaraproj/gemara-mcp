@@ -271,7 +271,7 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -383,7 +383,7 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -442,7 +442,7 @@ func NewPolicyHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFet
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -501,7 +501,7 @@ func NewRiskCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDo
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
