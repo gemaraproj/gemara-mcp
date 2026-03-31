@@ -588,6 +588,160 @@ func TestPromptControlCatalogMetadata(t *testing.T) {
 	assert.True(t, prefixArg.Required)
 }
 
+func TestNewMigrationHandler(t *testing.T) {
+	handler := NewMigrationHandler(mockLexiconFetcher, mockSchemaFetcher)
+
+	tests := []struct {
+		name           string
+		arguments      map[string]string
+		wantErr        bool
+		errContains    string
+		validateResult func(t *testing.T, result *mcp.GetPromptResult)
+	}{
+		{
+			name: "successful prompt generation with embedded resources",
+			arguments: map[string]string{
+				"component": "container runtime",
+			},
+			wantErr: false,
+			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Contains(t, result.Description, "container runtime")
+				require.Len(t, result.Messages, 5, "2 embedded resources + 3 text messages")
+
+				assertEmbeddedResources(t, result.Messages)
+
+				instructionMsg := result.Messages[2]
+				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
+				text := instructionMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, text, "container runtime")
+				assert.Contains(t, text, "migrate_gemara_artifact")
+				assert.Contains(t, text, "validate_gemara_artifact")
+				assert.Contains(t, text, "CapabilityCatalog")
+				assert.Contains(t, text, "## Key v0 → v1 Changes")
+
+				assistantMsg := result.Messages[3]
+				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
+				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, assistantText, "container runtime")
+				assert.Contains(t, assistantText, "Step 1: Collect Artifact")
+
+				userMsg := result.Messages[4]
+				assert.Equal(t, mcp.Role("user"), userMsg.Role)
+				userText := userMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, userText, "container runtime")
+			},
+		},
+		{
+			name: "component with dots hyphens underscores accepted",
+			arguments: map[string]string{
+				"component": "kube-apiserver_v2.1",
+			},
+			wantErr: false,
+			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Contains(t, result.Description, "kube-apiserver_v2.1")
+			},
+		},
+		{
+			name:        "missing component argument",
+			arguments:   map[string]string{},
+			wantErr:     true,
+			errContains: "component",
+		},
+		{
+			name: "empty component string",
+			arguments: map[string]string{
+				"component": "",
+			},
+			wantErr:     true,
+			errContains: "component",
+		},
+		{
+			name: "component with template interpolation rejected",
+			arguments: map[string]string{
+				"component": "${EVIL_VAR}",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "component with control characters rejected",
+			arguments: map[string]string{
+				"component": "bad\x00value",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			req := &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "migration",
+					Arguments: tt.arguments,
+				},
+			}
+
+			result, err := handler(ctx, req)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			if tt.validateResult != nil {
+				tt.validateResult(t, result)
+			}
+		})
+	}
+}
+
+func TestNewMigrationHandlerLexiconFetchError(t *testing.T) {
+	handler := NewMigrationHandler(failingLexiconFetcher, mockSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "migration",
+			Arguments: map[string]string{"component": "test"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching lexicon")
+}
+
+func TestNewMigrationHandlerSchemaFetchError(t *testing.T) {
+	handler := NewMigrationHandler(mockLexiconFetcher, failingSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "migration",
+			Arguments: map[string]string{"component": "test"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching schema docs")
+}
+
+func TestPromptMigrationMetadata(t *testing.T) {
+	assert.Equal(t, "migration", PromptMigration.Name)
+	assert.NotEmpty(t, PromptMigration.Description)
+	assert.Contains(t, PromptMigration.Description, "v0")
+	assert.Contains(t, PromptMigration.Description, "v1")
+	require.Len(t, PromptMigration.Arguments, 1)
+
+	componentArg := PromptMigration.Arguments[0]
+	assert.Equal(t, "component", componentArg.Name)
+	assert.True(t, componentArg.Required)
+}
+
 func TestPromptThreatAssessmentMetadata(t *testing.T) {
 	assert.Equal(t, "threat_assessment", PromptThreatAssessment.Name)
 	assert.NotEmpty(t, PromptThreatAssessment.Description)

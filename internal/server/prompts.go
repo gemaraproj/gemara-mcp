@@ -119,6 +119,15 @@ var (
 
 	//go:embed prompts/risk_catalog_user.md
 	riskCatalogUserTemplate string
+
+	//go:embed prompts/migration_system.md
+	migrationSystemTemplate string
+
+	//go:embed prompts/migration_assistant.md
+	migrationAssistantTemplate string
+
+	//go:embed prompts/migration_user.md
+	migrationUserTemplate string
 )
 
 // PromptThreatAssessment is the MCP prompt definition for the threat assessment wizard.
@@ -205,6 +214,21 @@ var PromptRiskCatalog = &mcp.Prompt{
 	},
 }
 
+// PromptMigration is the MCP prompt definition for the schema migration wizard.
+var PromptMigration = &mcp.Prompt{
+	Name:        "migration",
+	Title:       "Schema Migration Wizard",
+	Description: "Interactive wizard that guides you through migrating Gemara artifacts from v0 to v1 schema, including CapabilityCatalog extraction from ThreatCatalog.",
+	Arguments: []*mcp.PromptArgument{
+		{
+			Name:        "component",
+			Title:       "Component Name",
+			Description: "The name of the component whose artifacts are being migrated (e.g., 'container runtime', 'API gateway')",
+			Required:    true,
+		},
+	},
+}
+
 // NewControlCatalogHandler returns a PromptHandler that embeds the lexicon and schema
 // docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
 func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
@@ -256,6 +280,56 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 
 		return &mcp.GetPromptResult{
 			Description: fmt.Sprintf("Control catalog wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
+}
+
+// NewMigrationHandler returns a PromptHandler for the v0→v1 schema migration wizard.
+func NewMigrationHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
+
+		component := req.Params.Arguments["component"]
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+
+		lexicon, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
+
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		pairs := append([]string{"${COMPONENT}", component}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages = append(messages, resources...)
+		messages = append(messages,
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(migrationSystemTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(migrationAssistantTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(migrationUserTemplate)},
+			},
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Schema migration wizard for %s", component),
 			Messages:    messages,
 		}, nil
 	}

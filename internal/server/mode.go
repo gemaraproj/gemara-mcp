@@ -93,7 +93,7 @@ func (a *ArtifactMode) Name() string {
 func (a *ArtifactMode) Description() string {
 	return `Gemara artifact mode. Create, iterate on, and validate security artifacts.
 
-Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog, policy, risk_catalog.
+Tools: validate_gemara_artifact, migrate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog, policy, risk_catalog, migration.
 
 Offer wizard prompts for new artifacts. Validate frequently during iteration.`
 }
@@ -101,12 +101,19 @@ Offer wizard prompts for new artifacts. Validate frequently during iteration.`
 func (a *ArtifactMode) Register(server *mcp.Server) {
 	a.AdvisoryMode.Register(server)
 
+	mcp.AddTool(server, MetadataMigrateGemaraArtifact, a.migrateGemaraArtifact)
+
 	fetchLexicon := a.lexiconFetcher()
 	fetchSchemaDocs := a.schemaDocsFetcher()
 	server.AddPrompt(PromptThreatAssessment, NewThreatAssessmentHandler(fetchLexicon, fetchSchemaDocs))
 	server.AddPrompt(PromptControlCatalog, NewControlCatalogHandler(fetchLexicon, fetchSchemaDocs))
 	server.AddPrompt(PromptPolicy, NewPolicyHandler(fetchLexicon, fetchSchemaDocs))
 	server.AddPrompt(PromptRiskCatalog, NewRiskCatalogHandler(fetchLexicon, fetchSchemaDocs))
+	server.AddPrompt(PromptMigration, NewMigrationHandler(fetchLexicon, fetchSchemaDocs))
+}
+
+func (a *ArtifactMode) migrateGemaraArtifact(ctx context.Context, req *mcp.CallToolRequest, input InputMigrateGemaraArtifact) (*mcp.CallToolResult, OutputMigrateGemaraArtifact, error) {
+	return MigrateGemaraArtifact(ctx, req, input)
 }
 
 // lexiconFetcher returns a LexiconFetcher that always succeeds because

@@ -16,6 +16,10 @@ var advisoryToolNames = []string{
 	"validate_gemara_artifact",
 }
 
+var artifactToolNames = []string{
+	"migrate_gemara_artifact",
+}
+
 var advisoryResourceURIs = []string{
 	LexiconResourceURI,
 	SchemaDocsResourceURI,
@@ -28,6 +32,7 @@ var advisoryResourceTemplateURIs = []string{
 var artifactPromptNames = []string{
 	"threat_assessment",
 	"control_catalog",
+	"migration",
 }
 
 func connectSession(t *testing.T, server *mcp.Server) *mcp.ClientSession {
@@ -122,6 +127,10 @@ func TestAdvisoryModeRegistersToolsAndResources(t *testing.T) {
 		assert.Contains(t, templates, uri)
 	}
 
+	for _, name := range artifactToolNames {
+		assert.NotContains(t, tools, name, "advisory mode must not register artifact-only tools")
+	}
+
 	for _, name := range artifactPromptNames {
 		assert.NotContains(t, prompts, name, "advisory mode must not register artifact prompts")
 	}
@@ -144,6 +153,10 @@ func TestArtifactModeRegistersToolsResourcesAndPrompts(t *testing.T) {
 
 	for _, name := range advisoryToolNames {
 		assert.Contains(t, tools, name, "artifact mode must include all advisory tools")
+	}
+
+	for _, name := range artifactToolNames {
+		assert.Contains(t, tools, name, "artifact mode must include artifact-only tools")
 	}
 
 	for _, uri := range advisoryResourceURIs {
@@ -175,6 +188,8 @@ func TestArtifactModeMetadata(t *testing.T) {
 	assert.Equal(t, "artifact", mode.Name())
 	assert.Contains(t, mode.Description(), "artifact mode")
 	assert.Contains(t, mode.Description(), "validate_gemara_artifact")
+	assert.Contains(t, mode.Description(), "migrate_gemara_artifact")
+	assert.Contains(t, mode.Description(), "migration")
 	assert.Contains(t, mode.Description(), "gemara://lexicon")
 	assert.Contains(t, mode.Description(), "gemara://schema/definitions{?version}")
 	assert.NotContains(t, mode.Description(), "- term:", "lexicon must not be embedded in description")
