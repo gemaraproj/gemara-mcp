@@ -57,7 +57,13 @@ func (a *AdvisoryMode) handleLexiconResource(ctx context.Context, req *mcp.ReadR
 // fetchLexicon retrieves the lexicon from the remote URL, falling back to
 // the embedded copy on failure.
 func (a *AdvisoryMode) fetchLexicon(ctx context.Context) (content string, source string) {
-	hf, err := fetcher.NewHTTPFetcher(a.lexiconURLBuilder, defaultSchemaVersion)
+	version, err := a.resolveLexiconVersion(ctx)
+	if err != nil {
+		slog.Warn("failed to resolve lexicon version, using embedded fallback", "error", err)
+		return EmbeddedLexicon, "embedded"
+	}
+
+	hf, err := fetcher.NewHTTPFetcher(a.lexiconURLBuilder, version)
 	if err != nil {
 		slog.Warn("failed to build lexicon fetch URL, using embedded fallback", "error", err)
 		return EmbeddedLexicon, "embedded"
@@ -71,6 +77,16 @@ func (a *AdvisoryMode) fetchLexicon(ctx context.Context) (content string, source
 	}
 
 	return string(data), src
+}
+
+// resolveLexiconVersion resolves "latest" to a concrete semver tag via
+// the CUE module registry.
+func (a *AdvisoryMode) resolveLexiconVersion(ctx context.Context) (string, error) {
+	tag, _, err := a.versionResolver.Fetch(ctx, false)
+	if err != nil {
+		return "", fmt.Errorf("resolving latest version: %w", err)
+	}
+	return tag, nil
 }
 
 func (a *AdvisoryMode) handleSchemaDocsResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {

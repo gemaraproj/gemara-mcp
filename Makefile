@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: build test vet fmt lint golangci-lint clean help
+.PHONY: build test test-integration vet fmt lint golangci-lint clean help
 
 # Binary name
 BINARY_NAME := gemara-mcp
@@ -48,6 +48,10 @@ build: ## Build the binary
 test: ## Run tests
 	@echo "Running tests..."
 	$(GOTEST) -v ./...
+
+test-integration: ## Run tests including integration (requires network)
+	@echo "Running integration tests..."
+	$(GOTEST) -v -tags=integration ./...
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
