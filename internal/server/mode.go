@@ -124,9 +124,9 @@ func (a *ArtifactMode) migrateGemaraArtifact(ctx context.Context, req *mcp.CallT
 // lexiconFetcher returns a LexiconFetcher that always succeeds because
 // fetchLexicon falls back to the embedded lexicon on any remote failure.
 func (a *AdvisoryMode) lexiconFetcher() LexiconFetcher {
-	return func(ctx context.Context) (string, error) {
-		content, _ := a.fetchLexicon(ctx)
-		return content, nil
+	return func(ctx context.Context) (content string, source string, err error) {
+		content, source = a.fetchLexicon(ctx)
+		return content, source, nil
 	}
 }
 

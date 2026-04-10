@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// ControlCatalog migration (→ v1.0.0-rc.0)
+// ControlCatalog migration
 //
 // Bumps gemara-version; renames families→groups and control.family→control.group.
 
@@ -9,13 +9,14 @@ package migrate
 import gemara "github.com/gemaraproj/gemara@v1"
 
 input: {...}
+target_gemara_version: string
 
 output: gemara.#ControlCatalog & {
 	metadata: {
 		if input.metadata.id != _|_ {id: input.metadata.id}
 		if input.metadata.id == _|_ {id: "REPLACE ME"}
 		type: "ControlCatalog"
-		"gemara-version": "1.0.0-rc.0"
+		"gemara-version": target_gemara_version
 		if input.metadata.description != _|_ {description: input.metadata.description}
 		if input.metadata.description == _|_ {description: "REPLACE ME"}
 		if input.metadata.version != _|_ {version: input.metadata.version}

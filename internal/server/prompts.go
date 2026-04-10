@@ -12,6 +12,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const (
+	maxPromptArgLen       = 200
+	lexiconFallbackSource = "embedded"
+	lexiconWarning = "Lexicon Notice: The Gemara lexicon was loaded from " +
+		"an embedded fallback because the remote source was unavailable. " +
+		"Terminology definitions may not reflect the latest Gemara " +
+		"specification. After completing this wizard, verify your artifact " +
+		"against the latest lexicon at https://gemara.openssf.org."
+)
+
 var (
 	templateReplacerPairs = []string{
 		"${GEMARA_VERSION}", DefaultGemaraVersion,
@@ -23,14 +33,20 @@ var (
 	validIDPrefixPattern  = regexp.MustCompile(`^[A-Z0-9.-]+$`)
 )
 
-const maxPromptArgLen = 200
-
-// LexiconFetcher retrieves the lexicon content at prompt invocation time.
-type LexiconFetcher func(ctx context.Context) (string, error)
+// LexiconFetcher retrieves the lexicon content and its source at prompt invocation time.
+// Source is "embedded" when the remote fetch failed and the built-in copy was used.
+type LexiconFetcher func(ctx context.Context) (content string, source string, err error)
 
 // SchemaDocsFetcher retrieves formatted schema documentation at prompt invocation time.
 // This allows version-specific schema content to be resolved per-session.
 type SchemaDocsFetcher func(ctx context.Context) (string, error)
+
+func lexiconWarningMessage() *mcp.PromptMessage {
+	return &mcp.PromptMessage{
+		Role:    "user",
+		Content: &mcp.TextContent{Text: lexiconWarning},
+	}
+}
 
 func validateComponent(value string) error {
 	if value == "" {
@@ -187,7 +203,7 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 			return nil, err
 		}
 
-		lexicon, err := fetchLexicon(ctx)
+		lexicon, lexiconSource, err := fetchLexicon(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching lexicon: %w", err)
 		}
@@ -201,8 +217,11 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
-		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+4)
 		messages = append(messages, resources...)
+		if lexiconSource == lexiconFallbackSource {
+			messages = append(messages, lexiconWarningMessage())
+		}
 		messages = append(messages,
 			&mcp.PromptMessage{
 				Role:    "user",
@@ -237,7 +256,7 @@ func NewMigrationHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocs
 			return nil, err
 		}
 
-		lexicon, err := fetchLexicon(ctx)
+		lexicon, lexiconSource, err := fetchLexicon(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching lexicon: %w", err)
 		}
@@ -251,8 +270,11 @@ func NewMigrationHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocs
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
-		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+4)
 		messages = append(messages, resources...)
+		if lexiconSource == lexiconFallbackSource {
+			messages = append(messages, lexiconWarningMessage())
+		}
 		messages = append(messages,
 			&mcp.PromptMessage{
 				Role:    "user",
@@ -293,7 +315,7 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 			return nil, err
 		}
 
-		lexicon, err := fetchLexicon(ctx)
+		lexicon, lexiconSource, err := fetchLexicon(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching lexicon: %w", err)
 		}
@@ -307,8 +329,11 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
-		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+4)
 		messages = append(messages, resources...)
+		if lexiconSource == lexiconFallbackSource {
+			messages = append(messages, lexiconWarningMessage())
+		}
 		messages = append(messages,
 			&mcp.PromptMessage{
 				Role:    "user",

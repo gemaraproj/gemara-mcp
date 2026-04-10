@@ -2,10 +2,17 @@
 
 package server
 
+import (
+	"strings"
+
+	gemara "github.com/gemaraproj/go-gemara"
+)
+
 const (
 	LexiconResourceURI            = "gemara://lexicon"
 	SchemaDocsResourceURI         = "gemara://schema/definitions"
 	SchemaDocsResourceURITemplate = "gemara://schema/definitions{?version}"
-
-	DefaultGemaraVersion = "1.0.0-rc.0"
 )
+
+// DefaultGemaraVersion is derived from the go-gemara SDK's supported schema version.
+var DefaultGemaraVersion = strings.TrimPrefix(gemara.SchemaVersion, "v")
