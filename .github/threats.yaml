@@ -3,7 +3,7 @@ title: Gemara MCP Server Security Threat Catalog
 metadata:
   id: GEMARAPROJ.GEMARA.MCP
   type: ThreatCatalog
-  gemara-version: "1.0.0-rc.0"
+  gemara-version: "1.0.0"
   version: 1.0.0
   description: >-
     The Gemara MCP Server exposes tools to help with Gemara artifact authoring.

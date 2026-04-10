@@ -15,6 +15,8 @@ github.com/gemaraproj/go-gemara v0.0.2 h1:XA8HFQK5B6ltU5Xc0Z3eMArATiVuXjfbHR65lD
 github.com/gemaraproj/go-gemara v0.0.2/go.mod h1:hm4ELSJ9W/L413seDnlFIbHrXbNq6+YJK7DFQHHjNk4=
 github.com/gemaraproj/go-gemara v0.2.0 h1:7Nl0N8BiIwLqiYcpSw5yfdXclJQzp9+JOsOAWmyDB/4=
 github.com/gemaraproj/go-gemara v0.2.0/go.mod h1:soDwOy6Xhhi6evU7viVZ1WPYnGLHWFEbnL0AMha+/v4=
+github.com/gemaraproj/go-gemara v0.3.0 h1:azCDwI7kR1tDF9+KIIV+EQYbb1uNNZhA++RoU63ImZk=
+github.com/gemaraproj/go-gemara v0.3.0/go.mod h1:soDwOy6Xhhi6evU7viVZ1WPYnGLHWFEbnL0AMha+/v4=
 github.com/go-quicktest/qt v1.101.0 h1:O1K29Txy5P2OK0dGo59b7b0LR6wKfIhttaAhHUyn7eI=
 github.com/go-quicktest/qt v1.101.0/go.mod h1:14Bz/f7NwaXPtdYEgzsx46kqSxVwTbzVZsDC26tQJow=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=
