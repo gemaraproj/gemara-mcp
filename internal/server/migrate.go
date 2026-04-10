@@ -32,8 +32,6 @@ var moduleCUE string
 
 const migrateOverlayDir = "/cue/migrate"
 
-const targetGemaraVersion = "1.0.0-rc.0"
-
 // MetadataMigrateGemaraArtifact describes the MigrateGemaraArtifact tool.
 var MetadataMigrateGemaraArtifact = &mcp.Tool{
 	Name:        "migrate_gemara_artifact",
@@ -49,7 +47,7 @@ var MetadataMigrateGemaraArtifact = &mcp.Tool{
 			"artifact_type": map[string]interface{}{
 				"type":        "string",
 				"description": "Artifact type when metadata.type is missing. Infer from structure: threats → ThreatCatalog, controls → ControlCatalog.",
-				"enum":        []string{"ThreatCatalog", "ControlCatalog"},
+				"enum":        []string{gemara.ThreatCatalogArtifact.String(), gemara.ControlCatalogArtifact.String()},
 			},
 			"gemara_version": map[string]interface{}{
 				"type":        "string",
@@ -106,9 +104,9 @@ func MigrateGemaraArtifact(_ context.Context, _ *mcp.CallToolRequest, input Inpu
 		return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf("invalid artifact metadata: %w", err)
 	}
 
-	if meta.GemaraVersion == targetGemaraVersion {
+	if meta.GemaraVersion == DefaultGemaraVersion {
 		return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf(
-			"artifact is already at target gemara-version %q", targetGemaraVersion)
+			"artifact is already at target gemara-version %q", DefaultGemaraVersion)
 	}
 
 	slog.Info("migrating artifact",
@@ -168,7 +166,10 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 		capTitle = title + " - Capabilities"
 	}
 
-	tcExtras := map[string]interface{}{"capability_catalog_title": capTitle}
+	tcExtras := map[string]interface{}{
+		"target_gemara_version":    DefaultGemaraVersion,
+		"capability_catalog_title": capTitle,
+	}
 	tcYAML, err := cueMigrate(cueCtx, threatMigrationCUE, root, tcExtras)
 	if err != nil {
 		return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf("migrating %s: %w", tcType, err)
@@ -180,32 +181,36 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 		Content:           tcYAML,
 	}}
 	changes := []string{
-		fmt.Sprintf("Updated metadata.gemara-version from %q to %q", sourceVersion, targetGemaraVersion),
+		fmt.Sprintf("Updated metadata.gemara-version from %q to %q", sourceVersion, DefaultGemaraVersion),
 	}
 
 	if capsRaw, ok := root["capabilities"]; ok {
 		if caps, ok := capsRaw.([]interface{}); ok && len(caps) > 0 {
-			capExtras := map[string]interface{}{"capability_title": capTitle}
+			capExtras := map[string]interface{}{
+				"target_gemara_version": DefaultGemaraVersion,
+				"capability_title":      capTitle,
+			}
 			capYAML, err := cueMigrate(cueCtx, capabilityMigrationCUE, root, capExtras)
 			if err != nil {
-				return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf("extracting CapabilityCatalog: %w", err)
+				return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf("extracting %s: %w", gemara.CapabilityCatalogArtifact, err)
 			}
 
+			capType := gemara.CapabilityCatalogArtifact
 			artifacts = append(artifacts, MigratedArtifact{
-				Type:              "CapabilityCatalog",
+				Type:              capType.String(),
 				SuggestedFilename: "capabilities.yaml",
 				Content:           capYAML,
 			})
 			changes = append(changes,
-				fmt.Sprintf("Extracted %d capabilities into standalone CapabilityCatalog", len(caps)),
-				"Removed inline 'capabilities' from ThreatCatalog",
-				"Added mapping-references entry for extracted CapabilityCatalog",
+				fmt.Sprintf("Extracted %d capabilities into standalone %s", len(caps), capType),
+				fmt.Sprintf("Removed inline 'capabilities' from %s", tcType),
+				fmt.Sprintf("Added mapping-references entry for extracted %s", capType),
 			)
 		}
 	}
 
 	msg := fmt.Sprintf("Migrated %s from %s → %s: %d artifact(s) produced",
-		tcType, sourceVersion, targetGemaraVersion, len(artifacts))
+		tcType, sourceVersion, DefaultGemaraVersion, len(artifacts))
 	slog.Info("migration complete",
 		"type", tcType,
 		"artifacts", len(artifacts),
@@ -220,16 +225,19 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 }
 
 func migrateSimpleArtifact(cueCtx *cue.Context, root map[string]interface{}, cueSrc string, artifactType gemara.ArtifactType, filename, sourceVersion string) (*mcp.CallToolResult, OutputMigrateGemaraArtifact, error) {
-	outputYAML, err := cueMigrate(cueCtx, cueSrc, root, nil)
+	extras := map[string]interface{}{
+		"target_gemara_version": DefaultGemaraVersion,
+	}
+	outputYAML, err := cueMigrate(cueCtx, cueSrc, root, extras)
 	if err != nil {
 		return nil, OutputMigrateGemaraArtifact{}, fmt.Errorf("migrating %s: %w", artifactType, err)
 	}
 
 	changes := []string{
-		fmt.Sprintf("Updated metadata.gemara-version from %q to %q", sourceVersion, targetGemaraVersion),
+		fmt.Sprintf("Updated metadata.gemara-version from %q to %q", sourceVersion, DefaultGemaraVersion),
 	}
 	msg := fmt.Sprintf("Migrated %s from %s → %s: 1 artifact(s) produced",
-		artifactType, sourceVersion, targetGemaraVersion)
+		artifactType, sourceVersion, DefaultGemaraVersion)
 	slog.Info("migration complete",
 		"type", artifactType,
 		"artifacts", 1,

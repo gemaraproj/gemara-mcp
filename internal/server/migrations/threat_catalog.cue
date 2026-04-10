@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// ThreatCatalog migration (→ v1.0.0-rc.0)
+// ThreatCatalog migration
 //
 // Bumps gemara-version and removes inline capabilities (extracted
 // into a standalone CapabilityCatalog by capability_catalog.cue).
@@ -15,6 +15,7 @@ import (
 )
 
 input: {...}
+target_gemara_version:   string
 capability_catalog_title: string | *""
 
 output: gemara.#ThreatCatalog & {
@@ -22,7 +23,7 @@ output: gemara.#ThreatCatalog & {
 		if input.metadata.id != _|_ {id: input.metadata.id}
 		if input.metadata.id == _|_ {id: "REPLACE ME"}
 		type: "ThreatCatalog"
-		"gemara-version": "1.0.0-rc.0"
+		"gemara-version": target_gemara_version
 		if input.metadata.description != _|_ {description: input.metadata.description}
 		if input.metadata.description == _|_ {description: "REPLACE ME"}
 		if input.metadata.version != _|_ {version: input.metadata.version}

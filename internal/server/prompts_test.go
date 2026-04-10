@@ -17,12 +17,12 @@ const (
 	testSchemaDocs = "test-schema-docs-content"
 )
 
-func mockLexiconFetcher(_ context.Context) (string, error) {
-	return testLexicon, nil
+func mockLexiconFetcher(_ context.Context) (string, string, error) {
+	return testLexicon, "remote", nil
 }
 
-func failingLexiconFetcher(_ context.Context) (string, error) {
-	return "", fmt.Errorf("lexicon fetch error")
+func failingLexiconFetcher(_ context.Context) (string, string, error) {
+	return "", "", fmt.Errorf("lexicon fetch error")
 }
 
 func mockSchemaFetcher(_ context.Context) (string, error) {

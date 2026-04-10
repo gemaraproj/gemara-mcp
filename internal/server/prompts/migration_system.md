@@ -100,7 +100,7 @@ Execution steps:
 | `state` added                | Controls, AssessmentRequirements, Guidelines | Lifecycle state field (`Active`, `Draft`, `Deprecated`, `Retired`); defaults to `Active`                                            |
 | `objective` required         | Controls, Guidelines                         | Now a required field on each entry                                                                                                  |
 | `type` required              | GuidanceCatalog                              | Catalog-level `type` field (`Standard`, `Regulation`, `Best Practice`, `Framework`)                                                 |
-| gemara-version bump          | All                                          | `metadata.gemara-version` updated from older 0.x to `"1.0.0-rc.0"`                                                                  |
+| gemara-version bump          | All                                          | `metadata.gemara-version` updated from older 0.x to `"${GEMARA_VERSION}"`                                                            |
 
 
 ## Constraints
