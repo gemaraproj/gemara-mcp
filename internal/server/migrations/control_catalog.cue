@@ -31,6 +31,13 @@ output: gemara.#ControlCatalog & {
 		if input.metadata."mapping-references" != _|_ {"mapping-references": input.metadata."mapping-references"}
 		if input.metadata."applicability-categories" != _|_ {"applicability-groups": input.metadata."applicability-categories"}
 		if input.metadata."applicability-groups" != _|_ {"applicability-groups": input.metadata."applicability-groups"}
+		if input.metadata."applicability-categories" == _|_ if input.metadata."applicability-groups" == _|_ {
+			"applicability-groups": [{
+				id:          "REPLACE ME"
+				title:       "REPLACE ME"
+				description: "REPLACE ME"
+			}]
+		}
 	}
 
 	if input.title != _|_ {title: input.title}
