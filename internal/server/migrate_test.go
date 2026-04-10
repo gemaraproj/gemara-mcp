@@ -60,7 +60,7 @@ func TestMigrateGemaraArtifact(t *testing.T) {
 		{
 			name: "already at target version rejected",
 			input: InputMigrateGemaraArtifact{
-				ArtifactContent: "metadata:\n  type: ControlCatalog\n  gemara-version: \"1.0.0\"",
+				ArtifactContent: "metadata:\n  type: ControlCatalog\n  gemara-version: \"v1.0.0\"",
 			},
 			wantErr:     true,
 			errContains: "already at target",
@@ -97,7 +97,7 @@ func TestMigrateGemaraArtifact(t *testing.T) {
 				assert.Equal(t, gemara.ThreatCatalogArtifact.String(), tc.Type)
 				assert.Equal(t, "threats.yaml", tc.SuggestedFilename)
 				assert.Contains(t, tc.Content, "gemara-version")
-				assert.Contains(t, tc.Content, "1.0.0")
+				assert.Contains(t, tc.Content, "v1.0.0")
 				assert.NotContains(t, tc.Content, "title: Capability One")
 				assert.Contains(t, tc.Content, "mapping-references")
 				assert.Contains(t, tc.Content, "TEST.THR01")
@@ -109,7 +109,7 @@ func TestMigrateGemaraArtifact(t *testing.T) {
 				assert.Equal(t, gemara.CapabilityCatalogArtifact.String(), cc.Type)
 				assert.Equal(t, "capabilities.yaml", cc.SuggestedFilename)
 				assert.Contains(t, cc.Content, "CapabilityCatalog")
-				assert.Contains(t, cc.Content, "1.0.0")
+				assert.Contains(t, cc.Content, "v1.0.0")
 				assert.Contains(t, cc.Content, "TEST.CAP01")
 				assert.Contains(t, cc.Content, "TEST.CAP02")
 				assert.Contains(t, cc.Content, "Security Capability Catalog",
@@ -215,7 +215,7 @@ threats:
 			validateOutput: func(t *testing.T, output OutputMigrateGemaraArtifact) {
 				require.Len(t, output.Artifacts, 1, "no capabilities means no CapabilityCatalog")
 				assert.Equal(t, gemara.ThreatCatalogArtifact.String(), output.Artifacts[0].Type)
-				assert.Contains(t, output.Artifacts[0].Content, "1.0.0")
+				assert.Contains(t, output.Artifacts[0].Content, "v1.0.0")
 				assert.NotContains(t, output.Artifacts[0].Content, "imports")
 			},
 		},
@@ -259,7 +259,7 @@ threats: []
 				cc := output.Artifacts[0]
 				assert.Equal(t, gemara.ControlCatalogArtifact.String(), cc.Type)
 				assert.Equal(t, "controls.yaml", cc.SuggestedFilename)
-				assert.Contains(t, cc.Content, "1.0.0")
+				assert.Contains(t, cc.Content, "v1.0.0")
 				assert.Contains(t, cc.Content, "TEST.C01")
 				assert.Contains(t, cc.Content, "groups:", "families should be renamed to groups")
 				assert.NotContains(t, cc.Content, "families:", "families should not appear in migrated output")
@@ -314,7 +314,7 @@ controls:
 			validateOutput: func(t *testing.T, output OutputMigrateGemaraArtifact) {
 				require.Len(t, output.Artifacts, 1)
 				assert.Equal(t, gemara.ControlCatalogArtifact.String(), output.Artifacts[0].Type)
-				assert.Contains(t, output.Artifacts[0].Content, "1.0.0")
+				assert.Contains(t, output.Artifacts[0].Content, "v1.0.0")
 			},
 		},
 		{
@@ -348,7 +348,7 @@ controls:
 			validateOutput: func(t *testing.T, output OutputMigrateGemaraArtifact) {
 				require.Len(t, output.Artifacts, 1)
 				assert.Equal(t, gemara.ControlCatalogArtifact.String(), output.Artifacts[0].Type)
-				assert.Contains(t, output.Artifacts[0].Content, "1.0.0")
+				assert.Contains(t, output.Artifacts[0].Content, "v1.0.0")
 			},
 		},
 		{

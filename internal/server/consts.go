@@ -3,8 +3,6 @@
 package server
 
 import (
-	"strings"
-
 	gemara "github.com/gemaraproj/go-gemara"
 )
 
@@ -15,4 +13,4 @@ const (
 )
 
 // DefaultGemaraVersion is derived from the go-gemara SDK's supported schema version.
-var DefaultGemaraVersion = strings.TrimPrefix(gemara.SchemaVersion, "v")
+var DefaultGemaraVersion = gemara.SchemaVersion
