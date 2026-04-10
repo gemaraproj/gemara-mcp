@@ -32,7 +32,6 @@ var moduleCUE string
 
 const migrateOverlayDir = "/cue/migrate"
 
-
 // MetadataMigrateGemaraArtifact describes the MigrateGemaraArtifact tool.
 var MetadataMigrateGemaraArtifact = &mcp.Tool{
 	Name:        "migrate_gemara_artifact",
@@ -168,7 +167,7 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 	}
 
 	tcExtras := map[string]interface{}{
-		"target_gemara_version":   DefaultGemaraVersion,
+		"target_gemara_version":    DefaultGemaraVersion,
 		"capability_catalog_title": capTitle,
 	}
 	tcYAML, err := cueMigrate(cueCtx, threatMigrationCUE, root, tcExtras)

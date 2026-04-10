@@ -15,7 +15,7 @@ import (
 const (
 	maxPromptArgLen       = 200
 	lexiconFallbackSource = "embedded"
-	lexiconWarning = "Lexicon Notice: The Gemara lexicon was loaded from " +
+	lexiconWarning        = "Lexicon Notice: The Gemara lexicon was loaded from " +
 		"an embedded fallback because the remote source was unavailable. " +
 		"Terminology definitions may not reflect the latest Gemara " +
 		"specification. After completing this wizard, verify your artifact " +
