@@ -1,0 +1,123 @@
+# Envoy proxy for the Hydra DCR stack (hack/local-dev only).
+# Sanitizes Dynamic Client Registration request AND response bodies.
+# The MCP TypeScript SDK (OAuthClientInformationFullSchema) rejects
+# empty-string URLs and null arrays that Hydra returns for optional
+# RFC 7591 fields.
+# See: https://github.com/modelcontextprotocol/typescript-sdk/issues/754
+#
+# Limitations (acceptable for local dev):
+#   - Regex-on-JSON: fragile with reordered keys or non-standard whitespace.
+#   - No gzip/brotli decompression before Lua (typical dev responses are uncompressed).
+#   - Covers only the fields known to fail as of Hydra v2.x + MCP SDK v0.x.
+#   - Placeholder URIs (https://localhost) may confuse clients that dereference them.
+static_resources:
+  listeners:
+    - name: hydra_public
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 4444
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: hydra_proxy
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: hydra
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route:
+                            cluster: hydra_public
+                            timeout: 30s
+                http_filters:
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      default_source_code:
+                        inline_string: |
+                          -- Shared helper: fix fields that the MCP SDK Zod schema rejects.
+                          -- Replaces empty-string URLs with a placeholder and null arrays
+                          -- with empty arrays so the response passes client-side validation.
+                          -- Fields sourced from Hydra v2.x DCR responses that the MCP SDK
+                          -- Zod schema (OAuthClientInformationFullSchema) rejects.
+                          local empty_url_fields = {
+                            "client_uri", "logo_uri", "tos_uri", "policy_uri",
+                            "jwks_uri", "sector_identifier_uri",
+                          }
+                          local null_array_fields = {
+                            "contacts", "allowed_cors_origins",
+                          }
+
+                          local function sanitize_dcr(raw)
+                            for _, field in ipairs(empty_url_fields) do
+                              raw = raw:gsub('"' .. field .. '"%s*:%s*""',
+                                '"' .. field .. '":"https://localhost.invalid"')
+                            end
+                            for _, field in ipairs(null_array_fields) do
+                              raw = raw:gsub('"' .. field .. '"%s*:%s*null',
+                                '"' .. field .. '":[]')
+                            end
+                            return raw
+                          end
+
+                          local function is_register_request(method, path)
+                            if method ~= "POST" then return false end
+                            return path == "/oauth2/register"
+                              or path:find("^/oauth2/register%?") ~= nil
+                              or path == "/oauth2/register/"
+                          end
+
+                          function envoy_on_request(request_handle)
+                            local method = request_handle:headers():get(":method")
+                            local path = request_handle:headers():get(":path")
+                            if not is_register_request(method, path) then return end
+
+                            request_handle:streamInfo():dynamicMetadata():set("dcr", "is_register", true)
+
+                            local body = request_handle:body(true)
+                            if not body then return end
+                            local original = body:getBytes(0, body:length())
+                            local raw = sanitize_dcr(original)
+                            if raw ~= original then
+                              request_handle:logInfo("dcr_sanitizer: rewrote DCR request body")
+                            end
+                            body:setBytes(raw)
+                            request_handle:headers():replace("content-length", tostring(#raw))
+                          end
+
+                          function envoy_on_response(response_handle)
+                            local meta = response_handle:streamInfo():dynamicMetadata():get("dcr")
+                            if not meta or not meta["is_register"] then return end
+
+                            local body = response_handle:body(true)
+                            if not body then return end
+                            local original = body:getBytes(0, body:length())
+                            local raw = sanitize_dcr(original)
+                            if raw ~= original then
+                              response_handle:logInfo("dcr_sanitizer: rewrote DCR response body")
+                            end
+                            body:setBytes(raw)
+                            response_handle:headers():replace("content-length", tostring(#raw))
+                          end
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: hydra_public
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: hydra_public
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: hydra
+                      port_value: 4444

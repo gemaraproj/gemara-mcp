@@ -39,6 +39,9 @@ test-data/
 # CI/CD (not needed in image)
 .github/
 
+# Local test infrastructure
+hack/
+
 # Docker files
 Dockerfile
 .dockerignore

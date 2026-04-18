@@ -1,0 +1,93 @@
+# Envoy configuration for gateway-mode JWT validation.
+# Validates Bearer tokens against the mock IdP JWKS before
+# proxying to the gemara-mcp backend.
+static_resources:
+  listeners:
+    - name: gateway
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 7070
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: gateway
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: mcp
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route:
+                            cluster: mcp_backend
+                            timeout: 30s
+                http_filters:
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        oauth_idp:
+                          issuer: "http://localhost:9090/default"
+                          audiences: ["gemara-mcp"]
+                          remote_jwks:
+                            http_uri:
+                              uri: "http://idp:9090/default/jwks"
+                              cluster: idp
+                              timeout: 5s
+                            cache_duration: 300s
+                          forward: true
+                      rules:
+                        - match: { prefix: "/mcp" }
+                          requires: { provider_name: "oauth_idp" }
+                  - name: envoy.filters.http.local_ratelimit
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+                      stat_prefix: mcp_rate_limit
+                      token_bucket:
+                        max_tokens: 20
+                        tokens_per_fill: 10
+                        fill_interval: 1s
+                      filter_enabled:
+                        runtime_key: local_rate_limit_enabled
+                        default_value: { numerator: 100, denominator: HUNDRED }
+                      filter_enforced:
+                        runtime_key: local_rate_limit_enforced
+                        default_value: { numerator: 100, denominator: HUNDRED }
+                      response_headers_to_add:
+                        - append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                          header: { key: "Retry-After", value: "1" }
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: mcp_backend
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: mcp_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: mcp-gateway
+                      port_value: 8080
+
+    - name: idp
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: idp
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: idp
+                      port_value: 9090

@@ -1,0 +1,26 @@
+{
+  "interactiveLogin": true,
+  "tokenCallbacks": [
+    {
+      "issuerId": "default",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "grant_type",
+          "match": "client_credentials",
+          "claims": {
+            "aud": ["gemara-mcp"],
+            "sub": "test-client"
+          }
+        },
+        {
+          "requestParam": "grant_type",
+          "match": "authorization_code",
+          "claims": {
+            "aud": ["gemara-mcp"]
+          }
+        }
+      ]
+    }
+  ]
+}
