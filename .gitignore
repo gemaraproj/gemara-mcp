@@ -17,6 +17,7 @@ bin/
 coverage.*
 *.coverprofile
 profile.cov
+*.sarif
 
 # Dependency directories (remove the comment below to include it)
 vendor/

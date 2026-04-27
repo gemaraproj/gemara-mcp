@@ -93,6 +93,21 @@ lint: vet fmt-check golangci-lint ## Run all linting checks
 
 ci: fmt-check vet golangci-lint test ## Run all CI checks
 
+compose-gateway: ## Start gateway auth stack (Envoy validates JWTs)
+	docker compose -f hack/docker-compose.yml --profile gateway up --build
+
+compose-hydra: ## Start Hydra DCR stack (MCP client OAuth testing)
+	docker compose -f hack/docker-compose.yml --profile hydra up --build
+
+compose-down: ## Stop all compose services
+	docker compose -f hack/docker-compose.yml --profile gateway --profile hydra down -v
+
+compose-token: ## Fetch a test token from the mock IdP
+	@curl -sf -X POST http://localhost:9090/default/token \
+		-H "Content-Type: application/x-www-form-urlencoded" \
+		-d "grant_type=client_credentials&client_id=test&client_secret=test&scope=openid" \
+		| jq -r .access_token
+
 clean: ## Clean build artifacts
 	@echo "Cleaning..."
 	rm -rf $(BUILD_DIR)

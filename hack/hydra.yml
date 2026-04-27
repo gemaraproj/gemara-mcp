@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Ory Hydra configuration for local MCP client OAuth testing.
+# NOT for production use.
+
+serve:
+  cookies:
+    same_site_mode: Lax
+
+webfinger:
+  oidc_discovery:
+    client_registration_url: http://127.0.0.1:4444/oauth2/register
+
+urls:
+  self:
+    issuer: http://127.0.0.1:4444
+  consent: http://127.0.0.1:3000/consent
+  login: http://127.0.0.1:3000/login
+  logout: http://127.0.0.1:3000/logout
+
+secrets:
+  system:
+    - test-secret-not-for-production
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - public
+  dynamic_client_registration:
+    enabled: true
+
+strategies:
+  access_token: jwt

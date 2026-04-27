@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Local integration test stack for Streamable HTTP auth.
+#
+# Profiles:
+#   gateway     — Envoy validates JWTs, gemara-mcp trusts the proxy
+#   hydra       — Ory Hydra OAuth server with DCR for MCP client testing
+#
+# Usage (docker compose or podman-compose):
+#   docker compose --profile gateway up --build
+#   docker compose --profile hydra up --build
+
+services:
+  # ── Mock Identity Provider ─────────────────────────────────────────
+  # Navikt mock-oauth2-server: real OIDC discovery, JWKS, token endpoints.
+  # OIDC discovery:  http://localhost:9090/default/.well-known/openid-configuration
+  # Token endpoint:  http://localhost:9090/default/token
+  # JWKS endpoint:   http://localhost:9090/default/jwks
+  idp:
+    image: ghcr.io/navikt/mock-oauth2-server:3.0.1
+    ports:
+      - "9090:9090"
+    environment:
+      SERVER_PORT: "9090"
+      JSON_CONFIG_PATH: /config.json
+    volumes:
+      - ./idp-config.json:/config.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:9090/default/.well-known/openid-configuration 2>/dev/null"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ── Gateway Mode ───────────────────────────────────────────────────
+  # gemara-mcp serves metadata only; no token validation.
+  # Not published to host — only reachable through Envoy.
+  mcp-gateway:
+    build: ..
+    profiles: ["gateway"]
+    depends_on:
+      idp:
+        condition: service_healthy
+    command:
+      - serve
+      - --transport=http
+      - --insecure
+      - --address=0.0.0.0:8080
+      - --base-url=http://localhost:7070
+      - --auth-server-url=http://localhost:9090/default
+
+  # Envoy validates JWTs at the edge, proxies to mcp-gateway.
+  # MCP endpoint: http://localhost:7070/mcp
+  envoy:
+    image: envoyproxy/envoy:v1.33-latest
+    profiles: ["gateway"]
+    ports:
+      - "7070:7070"
+    depends_on:
+      idp:
+        condition: service_healthy
+      mcp-gateway:
+        condition: service_started
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+    command: ["-c", "/etc/envoy/envoy.yaml"]
+
+  # ── Hydra DCR Stack ──────────────────────────────────────────────────
+  # Ory Hydra with Dynamic Client Registration for testing MCP OAuth
+  # flows with MCP clients that support OAuth 2.1 + DCR.
+  #
+  # OIDC discovery: http://127.0.0.1:4444/.well-known/openid-configuration
+  # DCR endpoint:   POST http://127.0.0.1:4444/oauth2/register (via envoy-hydra)
+  # MCP endpoint:   http://localhost:8080/mcp
+  hydra:
+    image: oryd/hydra:v26.2.0
+    profiles: ["hydra"]
+    ports:
+      - "4445:4445"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chmod -R 777 /mnt/sqlite
+        hydra migrate -c /etc/config/hydra/hydra.yml sql up -e --yes
+        exec hydra serve -c /etc/config/hydra/hydra.yml all --dev
+    volumes:
+      - hydra-sqlite:/mnt/sqlite:rw
+      - ./hydra.yml:/etc/config/hydra/hydra.yml:ro
+    environment:
+      - DSN=sqlite:///mnt/sqlite/db.sqlite?_fk=true&mode=rwc
+
+  hydra-consent:
+    image: oryd/hydra-login-consent-node:v26.2.0
+    profiles: ["hydra"]
+    ports:
+      - "3000:3000"
+    environment:
+      - HYDRA_ADMIN_URL=http://hydra:4445
+    depends_on:
+      hydra:
+        condition: service_started
+
+  # Envoy sanitizes DCR requests (empty client_uri, null contacts) that
+  # Hydra's strict validation rejects, then proxies to hydra:4444.
+  envoy-hydra:
+    image: docker.io/envoyproxy/envoy:v1.33-latest
+    profiles: ["hydra"]
+    ports:
+      - "4444:4444"
+    depends_on:
+      hydra:
+        condition: service_started
+    volumes:
+      - ./envoy-hydra.yaml:/etc/envoy/envoy.yaml:ro
+    entrypoint: ["envoy"]
+    command: ["-c", "/etc/envoy/envoy.yaml"]
+
+  # gemara-mcp in gateway mode behind the compose network. Token
+  # validation is the responsibility of the MCP client's OAuth flow
+  # and whatever proxy sits in front in production.
+  mcp-hydra:
+    build: ..
+    profiles: ["hydra"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      hydra:
+        condition: service_started
+    command:
+      - serve
+      - --transport=http
+      - --insecure
+      - --address=0.0.0.0:8080
+      - --base-url=http://localhost:8080
+      - --auth-server-url=http://127.0.0.1:4444
+
+volumes:
+  hydra-sqlite:
