@@ -1,0 +1,142 @@
+metadata:
+  id: GEMARAPROJ.GEMARA.MCP.POL
+  type: Policy
+  gemara-version: "1.0.0-rc.0"
+  version: 1.0.0
+  description: Security and resilience policy for Gemara MCP Server deployments and operations.
+  author:
+    id: gemara
+    name: Gemara Authors
+    type: Software Assisted
+  mapping-references:
+    - id: CCC-Core
+      title: FINOS Common Cloud Controls Core
+      version: v2025.10
+      url: https://github.com/finos/common-cloud-controls/releases/download/v2025.10/CCC.Core_v2025.10.yaml
+      description: FINOS CCC core catalog of capabilities and threats for cloud controls
+    - id: NIST-800-53
+      title: NIST SP 800-53 Rev. 5
+      version: "5"
+      url: https://csrc.nist.gov/projects/risk-management/sp800-53-controls
+      description: NIST SP 800-53 security and privacy controls
+    - id: GEMARAPROJ.GEMARA.MCP
+      title: Gemara MCP Server Security Control Catalog
+      version: 1.0.0
+      url: https://github.com/gemaraproj/gemara-mcp
+      description: Control catalog for the Gemara MCP Server (controls.yaml)
+    - id: GEMARAPROJ.GEMARA.MCP-RISK
+      title: Gemara MCP Server Security Risk Catalog
+      version: 1.0.0
+      url: https://github.com/gemaraproj/gemara-mcp
+      description: Risk catalog for the Gemara MCP Server (risk-catalog.yaml)
+
+title: Gemara MCP Server Security Policy
+contacts:
+  responsible:
+    - name: Gemara MCP Maintainers
+      affiliation: OpenSSF Gemara
+  accountable:
+    - name: OpenSSF Gemara Governance
+      affiliation: OpenSSF
+  consulted:
+    - name: Gemara Security Contributors
+      affiliation: Community
+  informed:
+    - name: Gemara MCP Users and Integrators
+      affiliation: Community
+
+scope:
+  in:
+    technologies:
+      - Gemara MCP Server
+      - MCP stdio transport
+      - MCP streamable HTTP transport
+      - Gemara schema validation
+      - Gemara lexicon resource
+      - CUE registry modules
+    sensitivity:
+      - public
+    users:
+      - Developers and security engineers
+      - CI validation jobs
+  out:
+    technologies:
+      - Downstream consumer applications
+      - Third-party model hosting providers
+
+imports:
+  catalogs:
+    - reference-id: GEMARAPROJ.GEMARA.MCP
+
+risks:
+  mitigated:
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR01
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R01
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR02
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R02
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR03
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R03
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR04
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R04
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR05
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R05
+    - id: GEMARAPROJ.GEMARA.MCP.POL.MR06
+      risk:
+        reference-id: GEMARAPROJ.GEMARA.MCP-RISK
+        entry-id: GEMARAPROJ.GEMARA.MCP-RISK.R06
+
+adherence:
+  evaluation-methods:
+    - id: GEMARAPROJ.GEMARA.MCP.POL.EV01
+      type: Intent
+      mode: Automated
+      description: CI runs tests and linters covering validation and server startup paths.
+    - id: GEMARAPROJ.GEMARA.MCP.POL.EV02
+      type: Intent
+      mode: Manual
+      description: Maintainers review prompts, fetch logic, and security artifacts before release.
+  assessment-plans:
+    - id: GEMARAPROJ.GEMARA.MCP.POL.AP01
+      requirement-id: GEMARAPROJ.GEMARA.MCP.C01.TR01
+      frequency: Per release
+      evaluation-methods:
+        - id: GEMARAPROJ.GEMARA.MCP.POL.AP01.EM01
+          type: Behavioral
+          mode: Manual
+          description: Tests or static checks confirm validation payload size limits are enforced.
+    - id: GEMARAPROJ.GEMARA.MCP.POL.AP02
+      requirement-id: GEMARAPROJ.GEMARA.MCP.C06.TR01
+      frequency: Per release
+      evaluation-methods:
+        - id: GEMARAPROJ.GEMARA.MCP.POL.AP02.EM01
+          type: Behavioral
+          mode: Manual
+          description: Config and code review confirms schema or lexicon version pinning behavior.
+    - id: GEMARAPROJ.GEMARA.MCP.POL.AP03
+      requirement-id: GEMARAPROJ.GEMARA.MCP.C08.TR01
+      frequency: Per release
+      evaluation-methods:
+        - id: GEMARAPROJ.GEMARA.MCP.POL.AP03.EM01
+          type: Behavioral
+          mode: Manual
+          description: Prompt review confirms user input is delimited and not treated as instructions.
+  enforcement-methods:
+    - id: GEMARAPROJ.GEMARA.MCP.POL.ENF01
+      type: Gate
+      mode: Automated
+      description: Pull requests must pass CI, and security-sensitive changes require maintainer review.
+    - id: GEMARAPROJ.GEMARA.MCP.POL.ENF02
+      type: Gate
+      mode: Automated
+      description: Releases are built from tagged commits that passed CI on the default branch.
+  non-compliance: Findings are tracked as issues or advisories; critical integrity gaps are release blockers until remediated or explicitly accepted.

@@ -118,6 +118,24 @@ var (
 	//go:embed prompts/control_catalog_user.md
 	controlCatalogUserTemplate string
 
+	//go:embed prompts/policy_system.md
+	policySystemTemplate string
+
+	//go:embed prompts/policy_assistant.md
+	policyAssistantTemplate string
+
+	//go:embed prompts/policy_user.md
+	policyUserTemplate string
+
+	//go:embed prompts/risk_catalog_system.md
+	riskCatalogSystemTemplate string
+
+	//go:embed prompts/risk_catalog_assistant.md
+	riskCatalogAssistantTemplate string
+
+	//go:embed prompts/risk_catalog_user.md
+	riskCatalogUserTemplate string
+
 	//go:embed prompts/migration_system.md
 	migrationSystemTemplate string
 
@@ -159,6 +177,48 @@ var PromptControlCatalog = &mcp.Prompt{
 			Name:        "component",
 			Title:       "Component Name",
 			Description: "The name of the component or technology to create controls for (e.g., 'container runtime', 'API gateway', 'object storage')",
+			Required:    true,
+		},
+		{
+			Name:        "id_prefix",
+			Title:       "ID Prefix",
+			Description: "Organization and project prefix for identifiers in ORG.PROJECT.COMPONENT format (e.g., 'ACME.PLAT.GW')",
+			Required:    true,
+		},
+	},
+}
+
+// PromptPolicy is the MCP prompt definition for the policy wizard.
+var PromptPolicy = &mcp.Prompt{
+	Name:        "policy",
+	Title:       "Policy Wizard",
+	Description: "Interactive wizard that guides you through creating a Gemara-compatible Policy (Layer 3) for your project.",
+	Arguments: []*mcp.PromptArgument{
+		{
+			Name:        "component",
+			Title:       "Component Name",
+			Description: "The name of the component or technology to create a policy for (e.g., 'container runtime', 'API gateway', 'object storage')",
+			Required:    true,
+		},
+		{
+			Name:        "id_prefix",
+			Title:       "ID Prefix",
+			Description: "Organization and project prefix for identifiers in ORG.PROJECT.COMPONENT format (e.g., 'ACME.PLAT.GW')",
+			Required:    true,
+		},
+	},
+}
+
+// PromptRiskCatalog is the MCP prompt definition for the risk catalog wizard.
+var PromptRiskCatalog = &mcp.Prompt{
+	Name:        "risk_catalog",
+	Title:       "Risk Catalog Wizard",
+	Description: "Interactive wizard that guides you through creating a Gemara-compatible Risk Catalog (Layer 3) for your project.",
+	Arguments: []*mcp.PromptArgument{
+		{
+			Name:        "component",
+			Title:       "Component Name",
+			Description: "The name of the component or technology to create a risk catalog for (e.g., 'container runtime', 'API gateway', 'object storage')",
 			Required:    true,
 		},
 		{
@@ -351,6 +411,118 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 
 		return &mcp.GetPromptResult{
 			Description: fmt.Sprintf("Threat assessment wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
+}
+
+// NewPolicyHandler returns a PromptHandler that embeds the lexicon and schema
+// docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
+func NewPolicyHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
+
+		component := req.Params.Arguments["component"]
+		idPrefix := req.Params.Arguments["id_prefix"]
+
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+		if err := validateIDPrefix(idPrefix); err != nil {
+			return nil, err
+		}
+
+		lexicon, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
+
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages = append(messages, resources...)
+		messages = append(messages,
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(policySystemTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(policyAssistantTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(policyUserTemplate)},
+			},
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Policy wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
+}
+
+// NewRiskCatalogHandler returns a PromptHandler that embeds the lexicon and schema
+// docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
+func NewRiskCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
+
+		component := req.Params.Arguments["component"]
+		idPrefix := req.Params.Arguments["id_prefix"]
+
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+		if err := validateIDPrefix(idPrefix); err != nil {
+			return nil, err
+		}
+
+		lexicon, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
+
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages = append(messages, resources...)
+		messages = append(messages,
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(riskCatalogSystemTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(riskCatalogAssistantTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(riskCatalogUserTemplate)},
+			},
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Risk catalog wizard for %s (%s)", component, idPrefix),
 			Messages:    messages,
 		}, nil
 	}
