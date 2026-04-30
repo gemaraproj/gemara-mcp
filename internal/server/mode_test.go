@@ -33,6 +33,8 @@ var artifactPromptNames = []string{
 	"threat_assessment",
 	"control_catalog",
 	"mapping_document",
+	"policy",
+	"risk_catalog",
 	"migration",
 }
 

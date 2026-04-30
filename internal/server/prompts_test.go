@@ -1063,8 +1063,6 @@ func TestNewPolicyHandler(t *testing.T) {
 				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
 				assert.Contains(t, text, "#Policy")
-				assert.Contains(t, text, `gemara-version: "1.0.0-rc.0"`)
-				assert.Contains(t, text, "github.com/gemaraproj/gemara@v1")
 
 				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
@@ -1167,6 +1165,15 @@ func TestNewPolicyHandler(t *testing.T) {
 			errContains: "must match",
 		},
 		{
+			name: "component with markdown link injection rejected",
+			arguments: map[string]string{
+				"component": "click](http://evil.com)",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
 			name: "id_prefix with lowercase letters rejected",
 			arguments: map[string]string{
 				"component": "container runtime",
@@ -1189,6 +1196,15 @@ func TestNewPolicyHandler(t *testing.T) {
 			arguments: map[string]string{
 				"component": "container runtime",
 				"id_prefix": "ACME.${INJECT}",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with underscores rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME_PLAT_CR",
 			},
 			wantErr:     true,
 			errContains: "must match",
@@ -1306,8 +1322,6 @@ func TestNewRiskCatalogHandler(t *testing.T) {
 				assert.Contains(t, text, "**Next Steps**")
 				assert.Contains(t, text, "validate_gemara_artifact")
 				assert.Contains(t, text, "#RiskCatalog")
-				assert.Contains(t, text, `gemara-version: "1.0.0-rc.0"`)
-				assert.Contains(t, text, "github.com/gemaraproj/gemara@v1")
 
 				assistantMsg := result.Messages[3]
 				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
@@ -1409,6 +1423,15 @@ func TestNewRiskCatalogHandler(t *testing.T) {
 			errContains: "must match",
 		},
 		{
+			name: "component with markdown link injection rejected",
+			arguments: map[string]string{
+				"component": "click](http://evil.com)",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
 			name: "id_prefix with lowercase letters rejected",
 			arguments: map[string]string{
 				"component": "container runtime",
@@ -1431,6 +1454,15 @@ func TestNewRiskCatalogHandler(t *testing.T) {
 			arguments: map[string]string{
 				"component": "container runtime",
 				"id_prefix": "ACME.${INJECT}",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with underscores rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME_PLAT_CR",
 			},
 			wantErr:     true,
 			errContains: "must match",

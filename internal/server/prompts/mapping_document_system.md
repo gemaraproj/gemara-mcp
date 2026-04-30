@@ -25,7 +25,8 @@ Execution steps:
    Ask the user to provide both artifacts (by URL, file path, or pasted YAML content). For each artifact:
 
    - Run the artifact type identification procedure (see below) to confirm its type.
-   - Record the artifact's `metadata.id`, `metadata.type`, title, version, URL, and description for the `mapping-references` field.
+   - Run the version check procedure (see below) to detect v0 artifacts and prompt for migration.
+   - Record the artifact's `metadata.id`, `metadata.type`, title, version, URL, and description for the `mapping-references` field. Use the artifact's actual `gemara-version` (e.g., `"0.20.0"`) as the `version` in the `mapping-references` entry — do not override it with the mapping document's own version.
 
    Valid Gemara artifact types that can participate in mappings:
 
@@ -199,6 +200,21 @@ Procedure:
 3. If none validate, the artifact may not be Gemara-compatible. Ask the user to clarify and suggest checking for a `metadata` block or consulting the embedded schema documentation.
 4. If the artifact is not a Gemara artifact (e.g., NIST 800-53, MITRE ATT&CK), it can still be included as a `mapping-references` entry. Ask the user for the identifier, title, version, URL, and description, and which `entry-type` best describes its atomic units.
 
+## Version Check
+
+After the artifact type is confirmed as a Gemara artifact, check whether it uses the current schema version.
+
+Procedure:
+1. Inspect `metadata.gemara-version` in the artifact.
+2. If the version equals `"${GEMARA_VERSION}"`, the artifact is current — proceed normally.
+3. If the version is older (e.g., `"0.20.0"`, `"0.1.0"`, or any value other than `"${GEMARA_VERSION}"`):
+   - Inform the user: *"This artifact uses gemara-version `{version}`, which is an older schema version. The current version is ${GEMARA_VERSION}."*
+   - **If the artifact type is `ThreatCatalog` or `ControlCatalog`:** inform the user that automated migration is available — *"Automated migration to ${GEMARA_VERSION} is available via the **migration** prompt. Would you like to migrate this artifact first, or proceed with the v0 version as-is?"*
+   - **If the artifact type is any other type** (e.g., `GuidanceCatalog`, `CapabilityCatalog`, `VectorCatalog`): warn that automated migration is not yet available — *"Automated migration is not currently available for {type} artifacts. You can still use this artifact as-is in the mapping document."*
+   - **If the user chooses to migrate:** direct them to use the `migration` prompt separately with this artifact, then return to the mapping document wizard with the migrated output. Do not attempt to run the migration inline.
+   - **If the user declines migration or migration is unavailable:** proceed with the v0 artifact. Record its actual `gemara-version` value in the `mapping-references` entry's `version` field.
+4. Regardless of whether the source or target artifacts are v0 or v1, the mapping document's own `metadata.gemara-version` is always `"${GEMARA_VERSION}"`.
+
 ## Mapping Document Constraints
 
 - All `${ID_PREFIX}` values must match `^[A-Z0-9.-]+$`. If the provided prefix doesn't match, stop and ask for a corrected ID.
@@ -208,4 +224,5 @@ Procedure:
 - The `strength` field, when present, must be an integer between 1 and 10 inclusive.
 - The `confidence-level` field, when present, must be one of: `Undetermined`, `Low`, `Medium`, `High`.
 - The `source-reference` and `target-reference` `reference-id` values must each match an entry in `mapping-references`.
+- The mapping document's `metadata.gemara-version` is always `"${GEMARA_VERSION}"`, regardless of the schema versions of the source or target artifacts. The `mapping-references` entries record each referenced artifact's actual version.
 - Do not generate or suggest shell commands other than the `cue vet` command in step 5.
