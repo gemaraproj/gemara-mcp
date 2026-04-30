@@ -32,6 +32,7 @@ var advisoryResourceTemplateURIs = []string{
 var artifactPromptNames = []string{
 	"threat_assessment",
 	"control_catalog",
+	"mapping_document",
 	"migration",
 }
 

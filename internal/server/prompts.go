@@ -126,6 +126,15 @@ var (
 
 	//go:embed prompts/migration_user.md
 	migrationUserTemplate string
+
+	//go:embed prompts/mapping_document_system.md
+	mappingDocumentSystemTemplate string
+
+	//go:embed prompts/mapping_document_assistant.md
+	mappingDocumentAssistantTemplate string
+
+	//go:embed prompts/mapping_document_user.md
+	mappingDocumentUserTemplate string
 )
 
 // PromptThreatAssessment is the MCP prompt definition for the threat assessment wizard.
@@ -159,6 +168,27 @@ var PromptControlCatalog = &mcp.Prompt{
 			Name:        "component",
 			Title:       "Component Name",
 			Description: "The name of the component or technology to create controls for (e.g., 'container runtime', 'API gateway', 'object storage')",
+			Required:    true,
+		},
+		{
+			Name:        "id_prefix",
+			Title:       "ID Prefix",
+			Description: "Organization and project prefix for identifiers in ORG.PROJECT.COMPONENT format (e.g., 'ACME.PLAT.GW')",
+			Required:    true,
+		},
+	},
+}
+
+// PromptMappingDocument is the MCP prompt definition for the mapping document wizard.
+var PromptMappingDocument = &mcp.Prompt{
+	Name:        "mapping_document",
+	Title:       "Mapping Document Wizard",
+	Description: "Interactive wizard that guides you through creating a Gemara-compatible Mapping Document that captures relationships between entries in two artifacts.",
+	Arguments: []*mcp.PromptArgument{
+		{
+			Name:        "component",
+			Title:       "Component Name",
+			Description: "The name of the component whose artifacts are being mapped (e.g., 'container runtime', 'API gateway', 'object storage')",
 			Required:    true,
 		},
 		{
@@ -239,6 +269,65 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 
 		return &mcp.GetPromptResult{
 			Description: fmt.Sprintf("Control catalog wizard for %s (%s)", component, idPrefix),
+			Messages:    messages,
+		}, nil
+	}
+}
+
+// NewMappingDocumentHandler returns a PromptHandler that embeds the lexicon and schema
+// docs as EmbeddedResource messages, guaranteeing the LLM receives both during the wizard.
+func NewMappingDocumentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFetcher) mcp.PromptHandler {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		if req.Params == nil || req.Params.Arguments == nil {
+			return nil, fmt.Errorf("component argument is required")
+		}
+
+		component := req.Params.Arguments["component"]
+		idPrefix := req.Params.Arguments["id_prefix"]
+
+		if err := validateComponent(component); err != nil {
+			return nil, err
+		}
+		if err := validateIDPrefix(idPrefix); err != nil {
+			return nil, err
+		}
+
+		lexicon, lexiconSource, err := fetchLexicon(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching lexicon: %w", err)
+		}
+
+		schemaDocs, err := fetchSchemaDocs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching schema docs: %w", err)
+		}
+
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		r := strings.NewReplacer(pairs...)
+		resources := embeddedResourceMessages(lexicon, schemaDocs)
+
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+4)
+		messages = append(messages, resources...)
+		if lexiconSource == lexiconFallbackSource {
+			messages = append(messages, lexiconWarningMessage())
+		}
+		messages = append(messages,
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(mappingDocumentSystemTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: r.Replace(mappingDocumentAssistantTemplate)},
+			},
+			&mcp.PromptMessage{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: r.Replace(mappingDocumentUserTemplate)},
+			},
+		)
+
+		return &mcp.GetPromptResult{
+			Description: fmt.Sprintf("Mapping document wizard for %s (%s)", component, idPrefix),
 			Messages:    messages,
 		}, nil
 	}
