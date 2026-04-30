@@ -742,6 +742,272 @@ func TestPromptMigrationMetadata(t *testing.T) {
 	assert.True(t, componentArg.Required)
 }
 
+func TestNewMappingDocumentHandler(t *testing.T) {
+	handler := NewMappingDocumentHandler(mockLexiconFetcher, mockSchemaFetcher)
+
+	tests := []struct {
+		name           string
+		arguments      map[string]string
+		wantErr        bool
+		errContains    string
+		validateResult func(t *testing.T, result *mcp.GetPromptResult)
+	}{
+		{
+			name: "successful prompt generation with embedded resources",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr: false,
+			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Contains(t, result.Description, "container runtime")
+				assert.Contains(t, result.Description, "ACME.PLAT.CR")
+				require.Len(t, result.Messages, 5, "2 embedded resources + 3 text messages")
+
+				assertEmbeddedResources(t, result.Messages)
+
+				instructionMsg := result.Messages[2]
+				assert.Equal(t, mcp.Role("user"), instructionMsg.Role)
+				text := instructionMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, text, "container runtime")
+				assert.Contains(t, text, "ACME.PLAT.CR")
+				assert.Contains(t, text, "## Embedded Resources")
+				assert.Contains(t, text, "## Available Tool")
+				assert.Contains(t, text, "**Artifact Import**")
+				assert.Contains(t, text, "**Scope and Metadata**")
+				assert.Contains(t, text, "**Configure Mapping Direction**")
+				assert.Contains(t, text, "**Define Mappings**")
+				assert.Contains(t, text, "**Assemble and Validate**")
+				assert.Contains(t, text, "**Next Steps**")
+				assert.Contains(t, text, "validate_gemara_artifact")
+				assert.Contains(t, text, "#MappingDocument")
+
+				assistantMsg := result.Messages[3]
+				assert.Equal(t, mcp.Role("assistant"), assistantMsg.Role)
+				assistantText := assistantMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, assistantText, "container runtime")
+				assert.Contains(t, assistantText, "Step 1: Artifact Import")
+				assert.Contains(t, assistantText, "reply \"yes\"")
+
+				userMsg := result.Messages[4]
+				assert.Equal(t, mcp.Role("user"), userMsg.Role)
+				userText := userMsg.Content.(*mcp.TextContent).Text
+				assert.Contains(t, userText, "container runtime")
+				assert.Contains(t, userText, "ACME.PLAT.CR")
+			},
+		},
+		{
+			name: "component with dots hyphens underscores accepted",
+			arguments: map[string]string{
+				"component": "kube-apiserver_v2.1",
+				"id_prefix": "ACME.PLAT.KA",
+			},
+			wantErr: false,
+			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Contains(t, result.Description, "kube-apiserver_v2.1")
+			},
+		},
+		{
+			name: "missing component argument",
+			arguments: map[string]string{
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "component",
+		},
+		{
+			name: "missing id_prefix argument",
+			arguments: map[string]string{
+				"component": "API gateway",
+			},
+			wantErr:     true,
+			errContains: "id_prefix",
+		},
+		{
+			name:        "both arguments missing",
+			arguments:   map[string]string{},
+			wantErr:     true,
+			errContains: "component",
+		},
+		{
+			name: "empty component string",
+			arguments: map[string]string{
+				"component": "",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "component",
+		},
+		{
+			name: "empty id_prefix string",
+			arguments: map[string]string{
+				"component": "object storage",
+				"id_prefix": "",
+			},
+			wantErr:     true,
+			errContains: "id_prefix",
+		},
+		{
+			name: "id prefix and component embedded in YAML template",
+			arguments: map[string]string{
+				"component": "message queue",
+				"id_prefix": "SEC.SLAM.MQ",
+			},
+			wantErr: false,
+			validateResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				text := result.Messages[2].Content.(*mcp.TextContent).Text
+				assert.Contains(t, text, "SEC.SLAM.MQ")
+				assert.Contains(t, text, "message queue")
+				assert.Contains(t, text, "id: SEC.SLAM.MQ")
+				assert.Contains(t, text, "SEC.SLAM.MQ.MAP##")
+			},
+		},
+		{
+			name: "component with control characters rejected",
+			arguments: map[string]string{
+				"component": "bad\x00value",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "component with markdown link injection rejected",
+			arguments: map[string]string{
+				"component": "click](http://evil.com)",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "component with html tags rejected",
+			arguments: map[string]string{
+				"component": "<script>alert(1)</script>",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "component with template interpolation rejected",
+			arguments: map[string]string{
+				"component": "${EVIL_VAR}",
+				"id_prefix": "ACME.PLAT.CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with template interpolation rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME.${INJECT}",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with lowercase letters rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "acme.plat.cr",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with spaces rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME PLAT CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+		{
+			name: "id_prefix with underscores rejected",
+			arguments: map[string]string{
+				"component": "container runtime",
+				"id_prefix": "ACME_PLAT_CR",
+			},
+			wantErr:     true,
+			errContains: "must match",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			req := &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "mapping_document",
+					Arguments: tt.arguments,
+				},
+			}
+
+			result, err := handler(ctx, req)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			if tt.validateResult != nil {
+				tt.validateResult(t, result)
+			}
+		})
+	}
+}
+
+func TestNewMappingDocumentHandlerLexiconFetchError(t *testing.T) {
+	handler := NewMappingDocumentHandler(failingLexiconFetcher, mockSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "mapping_document",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching lexicon")
+}
+
+func TestNewMappingDocumentHandlerSchemaFetchError(t *testing.T) {
+	handler := NewMappingDocumentHandler(mockLexiconFetcher, failingSchemaFetcher)
+	req := &mcp.GetPromptRequest{
+		Params: &mcp.GetPromptParams{
+			Name:      "mapping_document",
+			Arguments: map[string]string{"component": "test", "id_prefix": "ACME.TEST"},
+		},
+	}
+
+	_, err := handler(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetching schema docs")
+	assert.Contains(t, err.Error(), "network error")
+}
+
+func TestPromptMappingDocumentMetadata(t *testing.T) {
+	assert.Equal(t, "mapping_document", PromptMappingDocument.Name)
+	assert.NotEmpty(t, PromptMappingDocument.Description)
+	require.Len(t, PromptMappingDocument.Arguments, 2)
+
+	componentArg := PromptMappingDocument.Arguments[0]
+	assert.Equal(t, "component", componentArg.Name)
+	assert.True(t, componentArg.Required)
+
+	prefixArg := PromptMappingDocument.Arguments[1]
+	assert.Equal(t, "id_prefix", prefixArg.Name)
+	assert.True(t, prefixArg.Required)
+}
+
 func TestPromptThreatAssessmentMetadata(t *testing.T) {
 	assert.Equal(t, "threat_assessment", PromptThreatAssessment.Name)
 	assert.NotEmpty(t, PromptThreatAssessment.Description)
