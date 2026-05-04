@@ -27,7 +27,7 @@ Execution steps:
      - **Policy** → `imports.policies`
      - **RiskCatalog** → used for `risks` section (mitigated/accepted risk references)
    - Record the user's choices for the `mapping-references` field in metadata.
-   - If a catalog URL is not from `github.com/finos` or `github.com/gemaraproj`, warn the user that the source is unverified.
+   - If a catalog URL is not from `github.com/finos`, `github.com/ossf`, or `github.com/gemaraproj`, warn the user that the source is unverified.
 
 2. **Scope and Metadata** — Confirm scope with the user, then generate the metadata block.
 
@@ -275,32 +275,21 @@ Execution steps:
 
 8. **Define Adherence** — Ask: "How will compliance with this policy be evaluated and enforced?"
 
-   The `adherence` section defines:
-
-   a. **Evaluation methods**: How policy compliance is assessed.
-      - Each method has a `type` (`Manual`, `Behavioral`, `Automated`, `Autoremediation`, or `Gate`), optional `description`, and optional `executor` (#Actor).
-
-   b. **Assessment plans**: Specific plans for evaluating assessment requirements from imported control catalogs.
-      - Each plan needs: `id` (pattern `${ID_PREFIX}.AP##`), `requirement-id` (the assessment requirement being evaluated), `frequency`, `evaluation-methods`, optional `evidence-requirements`, and optional `parameters`.
-
-   c. **Enforcement methods**: How policy violations are handled.
-      - Same structure as evaluation methods.
-
-   d. **Non-compliance**: Description of consequences for non-compliance.
+   The adherence sections capture the targeted outcomes for policy compliance — how it will be evaluated and enforced.
 
    Present proposals in tables:
 
    **Evaluation Methods:**
 
-   | | Type | Description | Executor |
-   |---|------|-------------|----------|
-   | a | Automated | ... | ... |
-   | b | Manual | ... | ... |
+   | | Type | Mode | Description | Executor |
+   |---|------|------|-------------|----------|
+   | a | Intent | Automated | ... | ... |
+   | b | Behavioral | Manual | ... | ... |
 
    **Assessment Plans:**
 
-   | | Plan ID | Requirement ID | Frequency | Method |
-   |---|---------|----------------|-----------|--------|
+   | | Plan ID | Requirement ID | Frequency | Mode |
+   |---|---------|----------------|-----------|------|
    | a | ${ID_PREFIX}.AP01 | {catalog}.C01.TR01 | Quarterly | Automated |
    | b | ${ID_PREFIX}.AP02 | {catalog}.C02.TR01 | Annually | Manual |
 
@@ -309,7 +298,8 @@ Execution steps:
    ```yaml
    adherence:
      evaluation-methods:
-       - type: {Manual | Behavioral | Automated | Autoremediation | Gate}
+       - type: {Intent | Behavioral}
+         mode: {Manual | Automated}
          description: {from user}
          executor:
            id: {from user}
@@ -321,6 +311,7 @@ Execution steps:
          frequency: {from user}
          evaluation-methods:
            - type: {method type}
+             mode: {Manual | Automated}
              description: {from user}
          evidence-requirements: {from user}
          parameters:
@@ -330,7 +321,7 @@ Execution steps:
              accepted-values:
                - {value}
      enforcement-methods:
-       - type: {Manual | Behavioral | Automated | Autoremediation | Gate}
+       - type: {Remediate | Gate}
          description: {from user}
      non-compliance: {from user}
    ```
