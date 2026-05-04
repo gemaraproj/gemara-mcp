@@ -9,8 +9,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/emicklei/proto v1.14.3 h1:zEhlzNkpP8kN6utonKMzlPfIvy82t5Kb9mufaJxSe1Q=
 github.com/emicklei/proto v1.14.3/go.mod h1:rn1FgRS/FANiZdD2djyH7TMA9jdRDcYQ9IEN9yvjX0A=
-github.com/gemaraproj/go-gemara v0.3.0 h1:azCDwI7kR1tDF9+KIIV+EQYbb1uNNZhA++RoU63ImZk=
-github.com/gemaraproj/go-gemara v0.3.0/go.mod h1:soDwOy6Xhhi6evU7viVZ1WPYnGLHWFEbnL0AMha+/v4=
+github.com/gemaraproj/go-gemara v0.4.0 h1:zyn7bJiqAitrRBCDlMYVLb8C1XhDWG2wI0j+pHad3HA=
+github.com/gemaraproj/go-gemara v0.4.0/go.mod h1:knXQmQ4f7vB18eb6TcUCP2A3dqQpn+oZdyz74Qe1+ac=
 github.com/go-quicktest/qt v1.101.0 h1:O1K29Txy5P2OK0dGo59b7b0LR6wKfIhttaAhHUyn7eI=
 github.com/go-quicktest/qt v1.101.0/go.mod h1:14Bz/f7NwaXPtdYEgzsx46kqSxVwTbzVZsDC26tQJow=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=
