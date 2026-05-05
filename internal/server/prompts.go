@@ -301,7 +301,7 @@ func NewControlCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Schem
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -350,7 +350,7 @@ func NewMappingDocumentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sche
 			return nil, err
 		}
 
-		lexicon, err := fetchLexicon(ctx)
+		lexicon, lexiconSource, err := fetchLexicon(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching lexicon: %w", err)
 		}
@@ -360,12 +360,15 @@ func NewMappingDocumentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sche
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
-		messages := make([]*mcp.PromptMessage, 0, len(resources)+3)
+		messages := make([]*mcp.PromptMessage, 0, len(resources)+4)
 		messages = append(messages, resources...)
+		if lexiconSource == lexiconFallbackSource {
+			messages = append(messages, lexiconWarningMessage())
+		}
 		messages = append(messages,
 			&mcp.PromptMessage{
 				Role:    "user",
@@ -469,7 +472,7 @@ func NewThreatAssessmentHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs Sch
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(DefaultGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -528,7 +531,7 @@ func NewPolicyHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDocsFet
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(PolicyRiskWizardGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
@@ -587,7 +590,7 @@ func NewRiskCatalogHandler(fetchLexicon LexiconFetcher, fetchSchemaDocs SchemaDo
 			return nil, fmt.Errorf("fetching schema docs: %w", err)
 		}
 
-		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, templateReplacerPairs...)
+		pairs := append([]string{"${COMPONENT}", component, "${ID_PREFIX}", idPrefix}, gemaraVersionReplacerPairs(PolicyRiskWizardGemaraVersion)...)
 		r := strings.NewReplacer(pairs...)
 		resources := embeddedResourceMessages(lexicon, schemaDocs)
 
