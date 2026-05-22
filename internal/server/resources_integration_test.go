@@ -39,7 +39,7 @@ func TestReadLexiconResource(t *testing.T) {
 	content := result.Contents[0]
 	assert.Equal(t, LexiconResourceURI, content.URI)
 	assert.Equal(t, "text/yaml", content.MIMEType)
-	assert.Contains(t, content.Text, "term:")
+	assert.Contains(t, content.Text, "title:")
 }
 
 func TestReadLexiconResourceReturnsContent(t *testing.T) {
@@ -121,5 +121,5 @@ func TestArtifactModeResourceAccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Contents, 1)
-	assert.Contains(t, result.Contents[0].Text, "term:")
+	assert.Contains(t, result.Contents[0].Text, "title:")
 }
