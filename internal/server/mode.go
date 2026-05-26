@@ -42,6 +42,10 @@ type AdvisoryMode struct {
 
 // NewAdvisoryMode creates a new AdvisoryMode with the provided cache TTL.
 func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
+	if _, err := parseLexicon([]byte(EmbeddedLexicon)); err != nil {
+		return nil, fmt.Errorf("embedded lexicon is invalid: %w", err)
+	}
+
 	lexiconBuilder, err := fetcher.NewURLBuilder(lexiconBaseURL, lexiconPathSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("creating lexicon URL builder: %w", err)

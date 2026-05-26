@@ -10,6 +10,9 @@ import (
 	"net/url"
 
 	"cuelang.org/go/cue"
+	gemara "github.com/gemaraproj/go-gemara"
+	goyaml "github.com/goccy/go-yaml"
+
 	"github.com/gemaraproj/gemara-mcp/internal/server/fetcher"
 	"github.com/gemaraproj/gemara-mcp/internal/server/schema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -54,6 +57,23 @@ func (a *AdvisoryMode) handleLexiconResource(ctx context.Context, req *mcp.ReadR
 	}, nil
 }
 
+// parseLexicon validates YAML content against the gemara.Lexicon type from
+// the SDK. Uses goccy/go-yaml directly because the SDK's codec package is
+// internal and gemara.Load assumes a file/URL fetch workflow.
+func parseLexicon(data []byte) (*gemara.Lexicon, error) {
+	var lex gemara.Lexicon
+	if err := goyaml.Unmarshal(data, &lex); err != nil {
+		return nil, fmt.Errorf("unmarshalling lexicon: %w", err)
+	}
+	if lex.Title == "" {
+		return nil, fmt.Errorf("lexicon missing required field: title")
+	}
+	if len(lex.Terms) == 0 {
+		return nil, fmt.Errorf("lexicon contains no terms")
+	}
+	return &lex, nil
+}
+
 // fetchLexicon retrieves the lexicon from the remote URL, falling back to
 // the embedded copy on failure.
 func (a *AdvisoryMode) fetchLexicon(ctx context.Context) (content string, source string) {
@@ -73,6 +93,11 @@ func (a *AdvisoryMode) fetchLexicon(ctx context.Context) (content string, source
 	data, src, err := cf.Fetch(ctx, false)
 	if err != nil {
 		slog.Warn("failed to fetch lexicon, using embedded fallback", "error", err)
+		return EmbeddedLexicon, "embedded"
+	}
+
+	if _, err := parseLexicon(data); err != nil {
+		slog.Warn("remote lexicon failed validation, using embedded fallback", "error", err)
 		return EmbeddedLexicon, "embedded"
 	}
 
