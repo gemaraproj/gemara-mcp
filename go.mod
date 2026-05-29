@@ -6,7 +6,7 @@ require (
 	cuelang.org/go v0.16.1
 	github.com/gemaraproj/go-gemara v0.5.0
 	github.com/goccy/go-yaml v1.19.2
-	github.com/modelcontextprotocol/go-sdk v1.6.0
+	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 )
