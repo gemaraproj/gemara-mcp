@@ -29,7 +29,7 @@ jobs:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 
   nfr6-eval:
-    needs: goreleaser
+    needs: releaser
     uses: gemaraproj/gemara-mcp-eval-infra/.github/workflows/determinism-check.yml@81013dcb4c86486b59d78b048db4a2d793d51119 # v0.1.0
     with:
       gemara_mcp_image: "ghcr.io/gemaraproj/gemara-mcp:${{ github.ref_name }}"
