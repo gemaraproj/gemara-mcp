@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   release:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.merged == true
     permissions:
       contents: write       # Create release and push tags
       pull-requests: read   # Read PR labels for release-drafter
@@ -24,13 +27,16 @@ jobs:
       release-config-name: release-drafter.yml
       goreleaser-config-path: .goreleaser.yaml
       go-version-file: go.mod
+      image-name: gemaraproj/gemara-mcp
       create-attestation: true
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
+      image-registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   nfr6-eval:
     needs: release
+    if: ${{ needs.release.outputs.full-tag != '' }}
     uses: gemaraproj/gemara-mcp-eval-infra/.github/workflows/determinism-check.yml@81013dcb4c86486b59d78b048db4a2d793d51119 # v0.1.0
     with:
-      gemara_mcp_image: "ghcr.io/gemaraproj/gemara-mcp:${{ github.ref_name }}"
-      gemara_schema_ref: "${{ github.ref_name }}"
+      gemara_mcp_image: "ghcr.io/gemaraproj/gemara-mcp:${{ needs.release.outputs.full-tag }}"
+      gemara_schema_ref: "${{ needs.release.outputs.full-tag }}"
