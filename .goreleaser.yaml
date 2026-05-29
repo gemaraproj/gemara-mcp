@@ -1,5 +1,12 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
+#
+# NOTE: GoReleaser handles binary builds and archives only.
+# Docker image build/push and SLSA provenance attestation are managed by the
+# ospo-reusable-workflows release workflow (see .github/workflows/release.yml).
+# Container image signing is provided via actions/attest-build-provenance
+# (Sigstore-backed SLSA attestation pushed to the registry) rather than
+# standalone cosign signatures.
 
 version: 2
 
@@ -33,25 +40,8 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
-dockers_v2:
-  - images:
-      - "ghcr.io/gemaraproj/gemara-mcp"
-    dockerfile: Dockerfile.goreleaser
-    tags:
-      - "{{ .Version }}"
-      - latest
-    platforms:
-      - linux/amd64
-      - linux/arm64
-
-# signs our docker image
-docker_signs:
-  - cmd: cosign
-    output: true
-    args:
-      - "sign"
-      - "${artifact}@${digest}"
-      - "--yes"
+checksum:
+  name_template: "checksums.txt"
 
 changelog:
   sort: asc
