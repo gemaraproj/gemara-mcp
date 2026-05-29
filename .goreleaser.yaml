@@ -61,4 +61,4 @@ changelog:
       - "^test:"
 
 release:
-  prerelease: auto
+  disable: true
