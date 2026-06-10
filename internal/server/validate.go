@@ -18,6 +18,12 @@ import (
 var MetadataValidateGemaraArtifact = &mcp.Tool{
 	Name:        "validate_gemara_artifact",
 	Description: "Validate a Gemara artifact YAML content against the Gemara CUE schema using the CUE registry module.",
+	Annotations: &mcp.ToolAnnotations{
+		ReadOnlyHint:    true,
+		IdempotentHint:  true,
+		DestructiveHint: boolPtr(false),
+		OpenWorldHint:   boolPtr(false),
+	},
 	InputSchema: map[string]interface{}{
 		"type":     "object",
 		"required": []string{"artifact_content", "definition"},

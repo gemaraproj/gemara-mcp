@@ -36,6 +36,12 @@ const migrateOverlayDir = "/cue/migrate"
 var MetadataMigrateGemaraArtifact = &mcp.Tool{
 	Name:        "migrate_gemara_artifact",
 	Description: "Migrate a Gemara artifact to v1 schema using CUE transformations. When the artifact is missing metadata fields (common in older v0 artifacts), use artifact_type and gemara_version to supply them.",
+	Annotations: &mcp.ToolAnnotations{
+		ReadOnlyHint:    true,
+		IdempotentHint:  true,
+		DestructiveHint: boolPtr(false),
+		OpenWorldHint:   boolPtr(false),
+	},
 	InputSchema: map[string]interface{}{
 		"type":     "object",
 		"required": []string{"artifact_content"},
