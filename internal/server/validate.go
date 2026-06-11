@@ -17,6 +17,7 @@ import (
 // MetadataValidateGemaraArtifact describes the ValidateGemaraArtifact tool.
 var MetadataValidateGemaraArtifact = &mcp.Tool{
 	Name:        "validate_gemara_artifact",
+	Title:       "Validate Gemara Artifact",
 	Description: "Validate a Gemara artifact YAML content against the Gemara CUE schema using the CUE registry module.",
 	Annotations: &mcp.ToolAnnotations{
 		ReadOnlyHint:    true,
