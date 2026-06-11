@@ -154,6 +154,9 @@ func (a *AdvisoryMode) validateGemaraArtifact(ctx context.Context, req *mcp.Call
 	if version == "" {
 		version = defaultSchemaVersion
 	}
+	if err := fetcher.ValidateVersion(version); err != nil {
+		return nil, OutputValidateGemaraArtifact{}, err
+	}
 	modulePath := gemaraModuleBase + version
 	f := schema.NewCUERegistryFetcher(modulePath)
 	cf := fetcher.NewCachedFetcher[cue.Value](f, a.schemaCache, modulePath)

@@ -252,6 +252,19 @@ func TestParseSchemaDocsVersion(t *testing.T) {
 	}
 }
 
+func TestValidateGemaraArtifactRejectsInvalidVersion(t *testing.T) {
+	mode, err := NewAdvisoryMode(1 * time.Hour)
+	require.NoError(t, err)
+
+	_, _, err = mode.validateGemaraArtifact(context.Background(), nil, InputValidateGemaraArtifact{
+		ArtifactContent: "title: test",
+		Definition:      "#ControlCatalog",
+		Version:         "../../etc/passwd",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid version")
+}
+
 func TestModeInterfaceCompliance(t *testing.T) {
 	advisory, err := NewAdvisoryMode(1 * time.Hour)
 	require.NoError(t, err)
