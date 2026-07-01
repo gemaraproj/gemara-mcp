@@ -14,3 +14,5 @@ const (
 
 // DefaultGemaraVersion is derived from the go-gemara SDK's supported schema version.
 var DefaultGemaraVersion = gemara.SchemaVersion
+
+func boolPtr(b bool) *bool { return &b }

@@ -27,6 +27,10 @@ var ResourceLexicon = &mcp.Resource{
 	Title:       "Gemara Lexicon",
 	Description: "Term definitions for the Gemara security model.",
 	MIMEType:    "text/yaml",
+	Annotations: &mcp.Annotations{
+		Audience: []mcp.Role{mcp.Role("assistant")},
+		Priority: 1,
+	},
 }
 
 var ResourceSchemaDocs = &mcp.Resource{
@@ -35,6 +39,10 @@ var ResourceSchemaDocs = &mcp.Resource{
 	Title:       "Gemara Schema Documentation",
 	Description: "CUE schema definitions for all Gemara artifact types (latest version). Use the versioned resource template for a specific version.",
 	MIMEType:    "text/plain",
+	Annotations: &mcp.Annotations{
+		Audience: []mcp.Role{mcp.Role("assistant")},
+		Priority: 1,
+	},
 }
 
 var ResourceSchemaDocsTemplate = &mcp.ResourceTemplate{
