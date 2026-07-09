@@ -34,6 +34,10 @@ Execution steps:
    2. Author name and identifier.
    3. Confirmation of the generated metadata before proceeding.
 
+   **URL rules for `mapping-references`:**
+   - **Bundle-local** references (artifacts that live in the same repository/bundle and will be assembled together) SHOULD omit `url`. The assembler resolves these by matching `mapping-reference.id` against `metadata.id` of peer artifacts in the bundle.
+   - **External** references (public frameworks, upstream catalogs hosted at a URL) SHOULD include `url`.
+
    ```yaml
    metadata:
      id: ${ID_PREFIX}
@@ -49,7 +53,7 @@ Execution steps:
        - id: {from step 1}
          title: {from step 1}
          version: {from step 1}
-         url: {from step 1}
+         url: {from step 1, only if external}
          description: {from step 1}
    title: ${COMPONENT} Security Threat Catalog
    ```

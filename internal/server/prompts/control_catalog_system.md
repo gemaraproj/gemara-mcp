@@ -46,7 +46,11 @@ Execution steps:
       Reply with letters (e.g., "a, d") or specify your own framework.
 
    - Add a `mapping-references` entry for each selected framework.
-   - Generate the metadata YAML block:
+   - Generate the metadata YAML block.
+
+   **URL rules for `mapping-references`:**
+   - **Bundle-local** references (artifacts that live in the same repository/bundle and will be assembled together) SHOULD omit `url`. The assembler resolves these by matching `mapping-reference.id` against `metadata.id` of peer artifacts in the bundle.
+   - **External** references (public frameworks, upstream catalogs hosted at a URL) SHOULD include `url`.
 
    ```yaml
    metadata:
@@ -63,7 +67,7 @@ Execution steps:
        - id: {from step 1}
          title: {from step 1}
          version: {from step 1}
-         url: {from step 1}
+         url: {from step 1, only if external}
          description: {from step 1}
        - id: {framework id}
          title: {framework title}
