@@ -90,16 +90,22 @@ gemara-mcp serve --mode artifact
 | `migration` | Interactive wizard that guides you through migrating Gemara artifacts from v0 to v1 schema |
 
 
-## Verifying Image Signatures
+## Verifying Artifacts
 
-Released container images are signed with [cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC.
-Signatures are attached to the image manifest digest.
+Released artifacts include [SLSA build provenance](https://slsa.dev/provenance/v1) attestations generated via GitHub Actions OIDC. Binary archives also include SPDX SBOMs, each with its own attestation.
+
+### Container images
 
 ```bash
-cosign verify \
-  --certificate-identity-regexp="https://github.com/gemaraproj/gemara-mcp/.github/workflows/release.yml" \
-  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-  ghcr.io/gemaraproj/gemara-mcp@<DIGEST>
+gh attestation verify oci://ghcr.io/gemaraproj/gemara-mcp:<TAG> \
+  --repo gemaraproj/gemara-mcp
+```
+
+### Binary archives
+
+```bash
+gh attestation verify gemara-mcp_Linux_x86_64.tar.gz \
+  --repo gemaraproj/gemara-mcp
 ```
 
 ## Building Docker Image

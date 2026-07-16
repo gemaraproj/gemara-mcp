@@ -40,6 +40,9 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
+sboms:
+  - artifacts: archive
+
 checksum:
   name_template: "checksums.txt"
 
