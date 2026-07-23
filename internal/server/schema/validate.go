@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/encoding/yaml"
 )
 
@@ -33,7 +34,8 @@ func Validate(schema cue.Value, definition, yamlContent string) (ValidateResult,
 		}, nil
 	}
 
-	data := schema.Context().BuildFile(yamlFile)
+	ctx := cuecontext.New()
+	data := ctx.BuildFile(yamlFile)
 	if err := data.Err(); err != nil {
 		return ValidateResult{
 			Valid:   false,
