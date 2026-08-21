@@ -1,7 +1,8 @@
 metadata:
   id: FINOS-CCC
   type: ControlCatalog
-  gemara-version: "1.0"
+  gemara-version: "1.1.0"
+  version: "2024.1"
   description: |
     FINOS CCC is an open standard project that describes consistent controls for
     compliant public cloud deployments in the financial services sector.
@@ -9,7 +10,23 @@ metadata:
     id: finos
     name: FINOS
     type: Human
-  applicability-categories:
+  mapping-references:
+    - id: CCC
+      title: FINOS Common Cloud Controls Threats
+      version: "2024.1"
+    - id: CSF
+      title: NIST Cybersecurity Framework
+      version: "2.0"
+    - id: CCM
+      title: Cloud Security Alliance Cloud Controls Matrix
+      version: "4.0"
+    - id: ISO-27001
+      title: ISO/IEC 27001
+      version: "2013"
+    - id: NIST-800-53
+      title: NIST Special Publication 800-53
+      version: "Rev. 5"
+  applicability-groups:
     - id: tlp_clear
       title: TLP:Clear
       description: |
@@ -29,7 +46,7 @@ metadata:
       description: |
         Information is restricted to the organization.
 title: FINOS Cloud Control Catalog
-families:
+groups:
   - id: data-protection
     title: Data Protection
     description: |
@@ -38,9 +55,8 @@ families:
       rest and in transit, access controls, and data retention policies.
 controls:
   - id: CCC.C01
-    family: data-protection
+    group: data-protection
     title: Prevent Unencrypted Requests
-
     objective: |
       Ensure that all communications are encrypted in transit to protect data
       integrity and confidentiality.
@@ -68,7 +84,6 @@ controls:
           - reference-id: SC-13
     assessment-requirements:
       - id: CCC.C01.TR01
-    
         text: |
           When a port is exposed for non-SSH network traffic, all traffic MUST
           include a TLS handshake AND be encrypted using TLS 1.2 or higher.
@@ -78,7 +93,6 @@ controls:
           - tlp_amber
           - tlp_red
       - id: CCC.C01.TR02
-    
         text: |
           When a port is exposed for SSH network traffic, all traffic MUST
           include a SSH handshake AND be encrypted using SSHv2 or higher.
@@ -89,9 +103,8 @@ controls:
           - tlp_red
 
   - id: CCC.C06
-    family: data-protection
+    group: data-protection
     title: Prevent Deployment in Restricted Regions
-
     objective: |
       Ensure that resources are not provisioned or deployed in
       geographic regions or cloud availability zones that have been
@@ -124,7 +137,6 @@ controls:
             remarks: Data-at-rest is protected
     assessment-requirements:
       - id: CCC.C06.TR01
-    
         text: |
           When a deployment request is made, the service MUST validate
           that the deployment region is not to a restricted or regions
@@ -135,7 +147,6 @@ controls:
           - tlp_amber
           - tlp_red
       - id: CCC.C06.TR02
-    
         text: |
           When a deployment request is made, the service MUST validate that
           replication of data, backups, and disaster recovery operations
@@ -147,9 +158,8 @@ controls:
           - tlp_red
 
   - id: CCC.C08
-    family: data-protection
+    group: data-protection
     title: Enable Multi-zone or Multi-region Data Replication
-
     objective: |
       Ensure that data is replicated across multiple
       zones or regions to protect against data loss due to hardware
@@ -176,7 +186,6 @@ controls:
             remarks: Information system recovery and reconstitution
     assessment-requirements:
       - id: CCC.C08.TR01
-    
         text: |
           When data is stored, the service MUST ensure that data is
           replicated across multiple availability zones or regions.
@@ -185,7 +194,6 @@ controls:
           - tlp_amber
           - tlp_red
       - id: CCC.C08.TR02
-    
         text: |
           When data is replicated across multiple zones or regions,
           the service MUST be able to verify the replication state,
@@ -197,9 +205,8 @@ controls:
           - tlp_red
 
   - id: CCC.C09
-    family: data-protection
+    group: data-protection
     title: Prevent Tampering, Deletion, or Unauthorized Access to Access Logs
-
     objective: |
       Access logs should always be considered sensitive.
       Ensure that access logs are protected against unauthorized
@@ -228,7 +235,6 @@ controls:
             remarks: Protection of audit information
     assessment-requirements:
       - id: CCC.C09.TR01
-    
         text: |
           When access logs are stored, the service MUST ensure that
           access logs cannot be accessed without proper authorization.
@@ -238,7 +244,6 @@ controls:
           - tlp_green
           - tlp_clear
       - id: CCC.C09.TR02
-    
         text: |
           When access logs are stored, the service MUST ensure that
           access logs cannot be modified without proper authorization.
@@ -248,7 +253,6 @@ controls:
           - tlp_green
           - tlp_clear
       - id: CCC.C09.TR03
-    
         text: |
           When access logs are stored, the service MUST ensure that
           access logs cannot be deleted without proper authorization.
@@ -259,11 +263,10 @@ controls:
           - tlp_clear
 
   - id: CCC.C10
-    family: data-protection
+    group: data-protection
     title: |
       Prevent Data Replication to Destinations Outside of Defined
       Trust Perimeter
-
     objective: |
       Prevent replication of data to untrusted destinations outside
       of defined trust perimeter. An untrusted destination is defined
@@ -291,7 +294,6 @@ controls:
             remarks: Information flow enforcement
     assessment-requirements:
       - id: CCC.C10.TR01
-    
         text: |
           When data is replicated, the service MUST ensure that
           replication is restricted to explicitly trusted destinations.

@@ -21,6 +21,7 @@ var artifactToolNames = []string{
 }
 
 var advisoryResourceURIs = []string{
+	AboutResourceURI,
 	LexiconResourceURI,
 	SchemaDocsResourceURI,
 }
@@ -177,6 +178,8 @@ func TestAdvisoryModeMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "advisory", mode.Name())
 	assert.Contains(t, mode.Description(), "advisory mode")
+	assert.Contains(t, mode.Description(), "seven-layer", "instructions must include the Gemara preamble")
+	assert.Contains(t, mode.Description(), "gemara://about")
 	assert.Contains(t, mode.Description(), "gemara://lexicon")
 	assert.Contains(t, mode.Description(), "gemara://schema/definitions{?version}")
 	assert.NotContains(t, mode.Description(), "- term:", "lexicon must not be embedded in description")
@@ -187,6 +190,8 @@ func TestArtifactModeMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "artifact", mode.Name())
 	assert.Contains(t, mode.Description(), "artifact mode")
+	assert.Contains(t, mode.Description(), "seven-layer", "instructions must include the Gemara preamble")
+	assert.Contains(t, mode.Description(), "gemara://about")
 	assert.Contains(t, mode.Description(), "validate_gemara_artifact")
 	assert.Contains(t, mode.Description(), "migrate_gemara_artifact")
 	assert.Contains(t, mode.Description(), "migration")

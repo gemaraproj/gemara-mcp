@@ -102,6 +102,30 @@ terms: []`,
 	}
 }
 
+func TestIsValidAbout(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{name: "embedded content", input: EmbeddedAbout, want: true},
+		{name: "leading whitespace", input: "\n\n# Gemara\n\nintro", want: true},
+		{name: "empty", input: "", want: false},
+		{name: "html error page", input: "<!DOCTYPE html><html>404</html>", want: false},
+		{name: "wrong heading", input: "# Something Else", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, isValidAbout([]byte(tt.input)))
+		})
+	}
+}
+
+func TestEmbeddedAboutIsValid(t *testing.T) {
+	assert.True(t, isValidAbout([]byte(EmbeddedAbout)))
+	assert.Contains(t, EmbeddedAbout, "Seven-Layer Model")
+}
+
 func TestEmbeddedLexiconConformsToSDKType(t *testing.T) {
 	lex, err := parseLexicon([]byte(EmbeddedLexicon))
 	require.NoError(t, err)

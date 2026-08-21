@@ -22,6 +22,27 @@ const (
 	lexiconPathSuffix    = "/docs/lexicon.yaml"
 )
 
+// gemaraPreamble is a static overview prepended to every mode's instructions.
+// It gives the client enough context to answer basic "what is Gemara" questions
+// without fetching from the open web, and points to gemara://about for detail.
+const gemaraPreamble = `Gemara is a seven-layer conceptual model for Governance, Risk, and Compliance (GRC) engineering, plus CUE schemas and SDKs that make GRC artifacts interoperable. It is part of the OpenSSF ecosystem.
+
+The seven layers (each builds on the one below):
+1. Vectors & Guidance   — generic, high-level risk guidance (e.g., OWASP Top 10, NIST CSF)
+2. Threats & Controls   — technology-specific, threat-informed controls with assessment requirements
+3. Risk & Policy        — organization-specific risk catalogs and policies
+4. Sensitive Activities — the pivot point: the actions that require governance
+5. Evaluation           — opinions formed by inspecting policy compliance (intent and behavior)
+6. Enforcement          — preventive and remediative action on non-compliance findings
+7. Audit & Continuous Monitoring — point-in-time review and ongoing observation
+
+Layers 1-3 (Definition) produce Catalogs; layers 5-7 (Measurement) produce Logs.
+Artifact types include: Guidance/Vector/Principle Catalogs (L1); Control/Capability/Threat Catalogs (L2); Risk Catalog and Policy (L3); Evaluation/Enforcement/Audit Logs (L5-7); plus Mapping Documents and the Lexicon.
+
+For a deeper overview, read the gemara://about resource before fetching Gemara docs from the web. Use gemara://lexicon for term definitions and gemara://schema/definitions for the CUE schemas.
+
+`
+
 // Mode represents the operational mode of the MCP server.
 type Mode interface {
 	// Name returns the string representation of the mode.
@@ -36,6 +57,7 @@ type Mode interface {
 type AdvisoryMode struct {
 	schemaCache       *fetcher.Cache[cue.Value]
 	lexiconCache      *fetcher.Cache[[]byte]
+	aboutCache        *fetcher.Cache[[]byte]
 	versionResolver   *fetcher.CachedFetcher[string]
 	lexiconURLBuilder *fetcher.URLBuilder
 }
@@ -44,6 +66,9 @@ type AdvisoryMode struct {
 func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
 	if _, err := parseLexicon([]byte(EmbeddedLexicon)); err != nil {
 		return nil, fmt.Errorf("embedded lexicon is invalid: %w", err)
+	}
+	if !isValidAbout([]byte(EmbeddedAbout)) {
+		return nil, fmt.Errorf("embedded about content is invalid")
 	}
 
 	lexiconBuilder, err := fetcher.NewURLBuilder(lexiconBaseURL, lexiconPathSuffix)
@@ -58,6 +83,7 @@ func NewAdvisoryMode(cacheTTL time.Duration) (*AdvisoryMode, error) {
 	return &AdvisoryMode{
 		schemaCache:       fetcher.NewCache[cue.Value](cacheTTL),
 		lexiconCache:      fetcher.NewCache[[]byte](cacheTTL),
+		aboutCache:        fetcher.NewCache[[]byte](cacheTTL),
 		versionResolver:   versionResolver,
 		lexiconURLBuilder: lexiconBuilder,
 	}, nil
@@ -68,15 +94,16 @@ func (a *AdvisoryMode) Name() string {
 }
 
 func (a *AdvisoryMode) Description() string {
-	return `Gemara advisory mode. Analyze and validate existing security artifacts.
+	return gemaraPreamble + `Gemara advisory mode. Analyze and validate existing security artifacts.
 
-Tools: validate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}.
+Tools: validate_gemara_artifact. Resources: gemara://about, gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}.
 
 For artifact creation, suggest switching to artifact mode.`
 }
 
 func (a *AdvisoryMode) Register(server *mcp.Server) {
 	mcp.AddTool(server, MetadataValidateGemaraArtifact, a.validateGemaraArtifact)
+	server.AddResource(ResourceAbout, a.handleAboutResource)
 	server.AddResource(ResourceLexicon, a.handleLexiconResource)
 	server.AddResource(ResourceSchemaDocs, a.handleSchemaDocsResource)
 	server.AddResourceTemplate(ResourceSchemaDocsTemplate, a.handleSchemaDocsTemplateResource)
@@ -102,9 +129,9 @@ func (a *ArtifactMode) Name() string {
 }
 
 func (a *ArtifactMode) Description() string {
-	return `Gemara artifact mode. Create, iterate on, and validate security artifacts.
+	return gemaraPreamble + `Gemara artifact mode. Create, iterate on, and validate security artifacts.
 
-Tools: validate_gemara_artifact, migrate_gemara_artifact. Resources: gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog, migration.
+Tools: validate_gemara_artifact, migrate_gemara_artifact. Resources: gemara://about, gemara://lexicon, gemara://schema/definitions. Resource templates: gemara://schema/definitions{?version}. Prompts: threat_assessment, control_catalog, migration.
 
 Offer wizard prompts for new artifacts. Validate frequently during iteration.`
 }

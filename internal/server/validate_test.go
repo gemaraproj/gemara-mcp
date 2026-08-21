@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testSchemaVersion = "v0.20.0"
+const testSchemaVersion = "v1.5.0"
 
 func newIntegrationSchemaCachedFetcher() *fetcher.CachedFetcher[cue.Value] {
 	cache := fetcher.NewCache[cue.Value](1 * time.Hour)

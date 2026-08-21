@@ -3,6 +3,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
@@ -21,12 +22,27 @@ import (
 //go:embed lexicon.yaml
 var EmbeddedLexicon string
 
+//go:embed about.md
+var EmbeddedAbout string
+
 var ResourceLexicon = &mcp.Resource{
 	URI:         LexiconResourceURI,
 	Name:        "gemara-lexicon",
 	Title:       "Gemara Lexicon",
 	Description: "Term definitions for the Gemara security model.",
 	MIMEType:    "text/yaml",
+	Annotations: &mcp.Annotations{
+		Audience: []mcp.Role{mcp.Role("assistant")},
+		Priority: 1,
+	},
+}
+
+var ResourceAbout = &mcp.Resource{
+	URI:         AboutResourceURI,
+	Name:        "gemara-about",
+	Title:       "About Gemara",
+	Description: "LLM-optimized overview of Gemara: the seven-layer GRC model, artifact types, schemas, and SDKs. Read this before fetching Gemara documentation from the web.",
+	MIMEType:    "text/markdown",
 	Annotations: &mcp.Annotations{
 		Audience: []mcp.Role{mcp.Role("assistant")},
 		Priority: 1,
@@ -120,6 +136,49 @@ func (a *AdvisoryMode) resolveLexiconVersion(ctx context.Context) (string, error
 		return "", fmt.Errorf("resolving latest version: %w", err)
 	}
 	return tag, nil
+}
+
+func (a *AdvisoryMode) handleAboutResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	content, source := a.fetchAbout(ctx)
+	slog.Info("about resource read", "source", source, "size", len(content))
+	return &mcp.ReadResourceResult{
+		Contents: []*mcp.ResourceContents{{
+			URI:      req.Params.URI,
+			MIMEType: "text/markdown",
+			Text:     content,
+		}},
+	}, nil
+}
+
+// fetchAbout retrieves the LLM-optimized guidance from the upstream URL,
+// falling back to the embedded copy when the remote is unreachable, returns a
+// non-200, or fails a basic sanity check.
+func (a *AdvisoryMode) fetchAbout(ctx context.Context) (content string, source string) {
+	hf, err := fetcher.NewStaticHTTPFetcher(aboutURL)
+	if err != nil {
+		slog.Warn("failed to build about fetch URL, using embedded fallback", "error", err)
+		return EmbeddedAbout, "embedded"
+	}
+
+	cf := fetcher.NewCachedFetcher[[]byte](hf, a.aboutCache, hf.URL())
+	data, src, err := cf.Fetch(ctx, false)
+	if err != nil {
+		slog.Warn("failed to fetch about, using embedded fallback", "error", err)
+		return EmbeddedAbout, "embedded"
+	}
+
+	if !isValidAbout(data) {
+		slog.Warn("remote about failed validation, using embedded fallback")
+		return EmbeddedAbout, "embedded"
+	}
+
+	return string(data), src
+}
+
+// isValidAbout performs a minimal sanity check that fetched content is the
+// Gemara guidance document and not, for example, an HTML error page.
+func isValidAbout(data []byte) bool {
+	return len(data) > 0 && bytes.HasPrefix(bytes.TrimSpace(data), []byte("# Gemara"))
 }
 
 func (a *AdvisoryMode) handleSchemaDocsResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
