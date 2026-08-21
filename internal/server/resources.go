@@ -113,15 +113,16 @@ func (a *AdvisoryMode) fetchLexicon(ctx context.Context) (content string, source
 		return EmbeddedLexicon, "embedded"
 	}
 
-	cf := fetcher.NewCachedFetcher[[]byte](hf, a.lexiconCache, hf.URL())
+	// Validate before caching (see validatingFetcher) so an invalid 200
+	// response never poisons the cache for the TTL.
+	vf := validatingFetcher{inner: hf, validate: func(data []byte) error {
+		_, err := parseLexicon(data)
+		return err
+	}}
+	cf := fetcher.NewCachedFetcher[[]byte](vf, a.lexiconCache, hf.URL())
 	data, src, err := cf.Fetch(ctx, false)
 	if err != nil {
 		slog.Warn("failed to fetch lexicon, using embedded fallback", "error", err)
-		return EmbeddedLexicon, "embedded"
-	}
-
-	if _, err := parseLexicon(data); err != nil {
-		slog.Warn("remote lexicon failed validation, using embedded fallback", "error", err)
 		return EmbeddedLexicon, "embedded"
 	}
 
@@ -160,25 +161,62 @@ func (a *AdvisoryMode) fetchAbout(ctx context.Context) (content string, source s
 		return EmbeddedAbout, "embedded"
 	}
 
-	cf := fetcher.NewCachedFetcher[[]byte](hf, a.aboutCache, hf.URL())
+	// Validate before caching so an invalid 200 response (e.g. a proxy error
+	// page) is never stored: caching it would keep failing validation on every
+	// cache hit and pin the resource to the embedded copy for the whole TTL,
+	// even after the upstream recovers.
+	vf := validatingFetcher{inner: hf, validate: func(data []byte) error {
+		if !isValidAbout(data) {
+			return fmt.Errorf("content is not a valid Gemara about document")
+		}
+		return nil
+	}}
+	cf := fetcher.NewCachedFetcher[[]byte](vf, a.aboutCache, hf.URL())
 	data, src, err := cf.Fetch(ctx, false)
 	if err != nil {
 		slog.Warn("failed to fetch about, using embedded fallback", "error", err)
 		return EmbeddedAbout, "embedded"
 	}
 
-	if !isValidAbout(data) {
-		slog.Warn("remote about failed validation, using embedded fallback")
-		return EmbeddedAbout, "embedded"
-	}
-
 	return string(data), src
 }
 
+// validatingFetcher wraps a byte fetcher and rejects responses that fail the
+// validate func, turning them into fetch errors. Because the error surfaces
+// before CachedFetcher stores the result, invalid content never poisons the
+// cache and pins the resource to its embedded fallback for the whole TTL.
+type validatingFetcher struct {
+	inner    fetcher.Fetcher[[]byte]
+	validate func([]byte) error
+}
+
+func (f validatingFetcher) Fetch(ctx context.Context) ([]byte, string, error) {
+	data, src, err := f.inner.Fetch(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := f.validate(data); err != nil {
+		return nil, "", fmt.Errorf("fetched content failed validation: %w", err)
+	}
+	return data, src, nil
+}
+
+// utf8BOM is the UTF-8 byte-order mark. bytes.TrimSpace does not strip it, so
+// isValidAbout removes it explicitly before inspecting the content.
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
 // isValidAbout performs a minimal sanity check that fetched content is the
-// Gemara guidance document and not, for example, an HTML error page.
+// Gemara guidance document and not, for example, an HTML error page. It
+// tolerates a leading UTF-8 BOM and variations in the top heading text,
+// requiring only that the document starts with a Markdown heading and mentions
+// Gemara.
 func isValidAbout(data []byte) bool {
-	return len(data) > 0 && bytes.HasPrefix(bytes.TrimSpace(data), []byte("# Gemara"))
+	trimmed := bytes.TrimSpace(bytes.TrimPrefix(bytes.TrimSpace(data), utf8BOM))
+	if len(trimmed) == 0 {
+		return false
+	}
+	return bytes.HasPrefix(trimmed, []byte("#")) &&
+		bytes.Contains(bytes.ToLower(trimmed), []byte("gemara"))
 }
 
 func (a *AdvisoryMode) handleSchemaDocsResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {

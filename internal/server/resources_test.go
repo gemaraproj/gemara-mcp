@@ -7,10 +7,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gemaraproj/gemara-mcp/internal/server/fetcher"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// stubByteFetcher returns a scripted sequence of responses, one per Fetch call.
+type stubByteFetcher struct {
+	responses [][]byte
+	calls     int
+}
+
+func (s *stubByteFetcher) Fetch(context.Context) ([]byte, string, error) {
+	r := s.responses[s.calls]
+	s.calls++
+	return r, "stub", nil
+}
 
 func setupAdvisorySession(t *testing.T) *mcp.ClientSession {
 	t.Helper()
@@ -110,7 +123,10 @@ func TestIsValidAbout(t *testing.T) {
 	}{
 		{name: "embedded content", input: EmbeddedAbout, want: true},
 		{name: "leading whitespace", input: "\n\n# Gemara\n\nintro", want: true},
+		{name: "leading utf8 bom", input: "\ufeff# Gemara\n\nintro", want: true},
+		{name: "heading variation", input: "# Gemara: Overview\n\nintro", want: true},
 		{name: "empty", input: "", want: false},
+		{name: "whitespace only", input: "   \n\t ", want: false},
 		{name: "html error page", input: "<!DOCTYPE html><html>404</html>", want: false},
 		{name: "wrong heading", input: "# Something Else", want: false},
 	}
@@ -124,6 +140,31 @@ func TestIsValidAbout(t *testing.T) {
 func TestEmbeddedAboutIsValid(t *testing.T) {
 	assert.True(t, isValidAbout([]byte(EmbeddedAbout)))
 	assert.Contains(t, EmbeddedAbout, "Seven-Layer Model")
+}
+
+// TestValidatingFetcherDoesNotCacheInvalidContent guards against cache
+// poisoning: an invalid 200 response must surface as an error before the cache
+// stores it, so a later recovered upstream is served instead of a pinned bad
+// body.
+func TestValidatingFetcherDoesNotCacheInvalidContent(t *testing.T) {
+	stub := &stubByteFetcher{responses: [][]byte{
+		[]byte("<!DOCTYPE html><html>502</html>"),
+		[]byte("# Gemara\n\nvalid content"),
+	}}
+	vf := validatingFetcher{inner: stub, validate: func(data []byte) error {
+		if !isValidAbout(data) {
+			return assert.AnError
+		}
+		return nil
+	}}
+	cf := fetcher.NewCachedFetcher[[]byte](vf, fetcher.NewCache[[]byte](1*time.Hour), "about")
+
+	_, _, err := cf.Fetch(context.Background(), false)
+	require.Error(t, err, "invalid content should surface as an error")
+
+	data, _, err := cf.Fetch(context.Background(), false)
+	require.NoError(t, err, "recovered upstream must not be blocked by a poisoned cache")
+	assert.Equal(t, "# Gemara\n\nvalid content", string(data))
 }
 
 func TestEmbeddedLexiconConformsToSDKType(t *testing.T) {
