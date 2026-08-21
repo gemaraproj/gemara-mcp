@@ -23,13 +23,8 @@ repository:
       affiliation: GitHub
       email: jmeridth@gmail.com
       primary: false
-    - name: Travis Truman
-      affiliation: Independent
-      email: trumant@gmail.com
-      primary: false
-    - name: Alex Speasmaker
-      affiliation: USAA
-      email: alex.speasmaker@gmail.com
+    - name: Hannah Braswell
+      affiliation: Red Hat
       primary: false
   documentation:
     contributing-guide: https://github.com/gemaraproj/gemara-mcp/blob/main/CONTRIBUTING.md
