@@ -28,6 +28,30 @@ func (m *mockFetcher) Fetch(_ context.Context) ([]byte, string, error) {
 	return m.data, m.source, nil
 }
 
+func TestNewStaticHTTPFetcher(t *testing.T) {
+	tests := []struct {
+		name    string
+		rawURL  string
+		wantErr bool
+	}{
+		{name: "valid https", rawURL: "https://gemara.openssf.org/llms-full.txt"},
+		{name: "http rejected", rawURL: "http://gemara.openssf.org/llms-full.txt", wantErr: true},
+		{name: "missing host", rawURL: "https://", wantErr: true},
+		{name: "not a url", rawURL: "://bad", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := NewStaticHTTPFetcher(tt.rawURL)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.rawURL, f.URL())
+		})
+	}
+}
+
 func TestCachedFetcher(t *testing.T) {
 	tests := []struct {
 		name      string
