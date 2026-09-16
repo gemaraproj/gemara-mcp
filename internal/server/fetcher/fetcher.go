@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // defaultMaxResponseBytes limits response body reads.
@@ -35,6 +36,23 @@ func NewHTTPFetcher(builder *URLBuilder, version string) (*HTTPFetcher, error) {
 		return nil, fmt.Errorf("building fetch URL: %w", err)
 	}
 	return &HTTPFetcher{fetchURL: fetchURL}, nil
+}
+
+// NewStaticHTTPFetcher creates an HTTP fetcher for a fixed, unversioned URL.
+// Unlike NewHTTPFetcher, it does not insert a version into the path. The URL
+// must use HTTPS.
+func NewStaticHTTPFetcher(rawURL string) (*HTTPFetcher, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL: %w", err)
+	}
+	if u.Scheme != "https" {
+		return nil, fmt.Errorf("URL must use HTTPS, got scheme %q", u.Scheme)
+	}
+	if u.Host == "" {
+		return nil, fmt.Errorf("URL must have a host")
+	}
+	return &HTTPFetcher{fetchURL: u.String()}, nil
 }
 
 // URL returns the resolved fetch URL.

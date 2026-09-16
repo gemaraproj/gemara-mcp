@@ -77,6 +77,7 @@ gemara-mcp serve --mode artifact
 
 | Resource URI | Description |
 |:---|:---|
+| `gemara://about` | LLM-optimized overview of Gemara: the seven-layer model, artifact types, schemas, and SDKs. Fetched from the website with an embedded offline fallback |
 | `gemara://lexicon` | Term definitions for the Gemara security model |
 | `gemara://schema/definitions` | CUE schema definitions for all Gemara artifact types (latest version) |
 | `gemara://schema/definitions{?version}` | CUE schema definitions for a specific Gemara module version |

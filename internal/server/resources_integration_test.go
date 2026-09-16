@@ -52,6 +52,20 @@ func TestReadLexiconResourceReturnsContent(t *testing.T) {
 	assert.NotEmpty(t, result.Contents[0].Text, "lexicon should always return content via embedded fallback")
 }
 
+func TestReadAboutResource(t *testing.T) {
+	session := setupAdvisorySession(t)
+	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
+		URI: AboutResourceURI,
+	})
+	require.NoError(t, err)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, AboutResourceURI, content.URI)
+	assert.Equal(t, "text/markdown", content.MIMEType)
+	assert.Contains(t, content.Text, "# Gemara", "about should always return content via embedded fallback")
+}
+
 func TestReadSchemaDocsResource(t *testing.T) {
 	session := setupAdvisorySession(t)
 	result, err := session.ReadResource(context.Background(), &mcp.ReadResourceParams{
