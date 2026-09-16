@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	cuelang.org/go v0.17.1
-	github.com/gemaraproj/go-gemara v0.9.2
+	github.com/gemaraproj/go-gemara v0.10.0
 	github.com/goccy/go-yaml v1.19.2
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 )
