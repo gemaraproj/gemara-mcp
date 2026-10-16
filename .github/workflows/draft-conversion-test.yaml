@@ -17,6 +17,7 @@ on:
         options:
           - draft-test-pr
           - draft-test-pr-issues
+          - draft-test-pr-contents
 
 permissions: {}
 
