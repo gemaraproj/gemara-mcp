@@ -13,7 +13,6 @@ jobs:
     permissions:
       issues: write # Label, comment on, and close stale issues
       pull-requests: write # Label, comment on, and close stale pull requests
-      id-token: write # Octo-STS OIDC exchange for the draft conversion token
     steps:
       - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
@@ -32,25 +31,14 @@ jobs:
             This issue has had no activity for 60 days. It will close in 14 days
             unless there is new activity. Add the `keep` label to exempt it.
           stale-pr-message: >-
-            This pull request has had no activity for 30 days, so it has been
-            converted to a draft. It will close in 14 days unless there is new
-            activity. Mark it ready for review to keep it open, or add the `keep`
-            label to exempt it.
+            This pull request has had no activity for 30 days. It will close in
+            14 days unless there is new activity. Add the `keep` label to exempt
+            it.
           close-issue-message: This issue closed after 74 days without activity.
           close-pr-message: This pull request closed after 44 days without activity.
 
-      # GITHUB_TOKEN cannot call convertPullRequestToDraft, so the draft
-      # conversion uses a short-lived Octo-STS token instead.
-      - name: Get Octo-STS token
-        id: sts
-        uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
-        with:
-          scope: ${{ github.repository }}
-          identity: stale
-
-      - name: Convert newly stale pull requests to draft and report
+      - name: Report stale and closed items
         env:
-          GH_TOKEN: ${{ steps.sts.outputs.token }}
           GH_REPO: ${{ github.repository }}
           STALED: ${{ steps.stale.outputs.staled-issues-prs }}
           CLOSED: ${{ steps.stale.outputs.closed-issues-prs }}
@@ -63,16 +51,7 @@ jobs:
           items() { echo "${1:-[]}" | jq -r '.[] | [(if .pull_request then "PR" else "Issue" end), .number, .title] | @tsv'; }
 
           while IFS=$'\t' read -r type number title; do
-            action="Marked stale"
-            if [ "$type" = "PR" ]; then
-              if [ "$(gh pr view "$number" --json isDraft --jq .isDraft)" = "false" ]; then
-                gh pr ready "$number" --undo
-                action="Marked stale, converted to draft"
-              else
-                action="Marked stale, already a draft"
-              fi
-            fi
-            add_row "$number" "$type" "$title" "$action"
+            add_row "$number" "$type" "$title" "Marked stale"
           done < <(items "$STALED")
 
           while IFS=$'\t' read -r type number title; do
