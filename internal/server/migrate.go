@@ -30,7 +30,16 @@ var controlMigrationCUE string
 //go:embed migrations/cue.mod/module.cue
 var moduleCUE string
 
-const migrateOverlayDir = "/cue/migrate"
+// migrateOverlayDir is the virtual directory the migration CUE is loaded from.
+// CUE requires overlay paths to be absolute, and "/cue/migrate" is not on
+// Windows, where an absolute path needs a volume, so resolve it there.
+var migrateOverlayDir = func() string {
+	dir, err := filepath.Abs(filepath.FromSlash("/cue/migrate"))
+	if err != nil {
+		return "/cue/migrate"
+	}
+	return dir
+}()
 
 // MetadataMigrateGemaraArtifact describes the MigrateGemaraArtifact tool.
 var MetadataMigrateGemaraArtifact = &mcp.Tool{
