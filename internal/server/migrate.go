@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -29,17 +30,6 @@ var controlMigrationCUE string
 
 //go:embed migrations/cue.mod/module.cue
 var moduleCUE string
-
-// migrateOverlayDir is the virtual directory the migration CUE is loaded from.
-// CUE requires overlay paths to be absolute, and "/cue/migrate" is not on
-// Windows, where an absolute path needs a volume, so resolve it there.
-var migrateOverlayDir = func() string {
-	dir, err := filepath.Abs(filepath.FromSlash("/cue/migrate"))
-	if err != nil {
-		return "/cue/migrate"
-	}
-	return dir
-}()
 
 // MetadataMigrateGemaraArtifact describes the MigrateGemaraArtifact tool.
 var MetadataMigrateGemaraArtifact = &mcp.Tool{
@@ -276,13 +266,22 @@ func migrateSimpleArtifact(cueCtx *cue.Context, root map[string]interface{}, cue
 // the result as YAML.
 func cueMigrate(cueCtx *cue.Context, cueSrc string, inputData map[string]interface{}, extras map[string]interface{}) (string, error) {
 	// FIXME(jpower432): Is this the correct way to load a local module?
+	// Overlay paths must be absolute, and CUE also reads any real files in the
+	// directory they point at. A new, empty temp directory, private to this
+	// user, gives an absolute path on every OS with nothing else to merge in.
+	dir, err := os.MkdirTemp("", "gemara-migrate-")
+	if err != nil {
+		return "", fmt.Errorf("creating migration directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+
 	overlay := map[string]load.Source{
-		filepath.Join(migrateOverlayDir, "migrate.cue"):           load.FromString(cueSrc),
-		filepath.Join(migrateOverlayDir, "cue.mod", "module.cue"): load.FromString(moduleCUE),
+		filepath.Join(dir, "migrate.cue"):           load.FromString(cueSrc),
+		filepath.Join(dir, "cue.mod", "module.cue"): load.FromString(moduleCUE),
 	}
 
 	instances := load.Instances([]string{"."}, &load.Config{
-		Dir:     migrateOverlayDir,
+		Dir:     dir,
 		Overlay: overlay,
 		Package: "migrate",
 	})
