@@ -213,6 +213,11 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 				fmt.Sprintf("Removed inline 'capabilities' from %s", tcType),
 				fmt.Sprintf("Added mapping-references entry for extracted %s", capType),
 			)
+			if meta, ok := root["metadata"].(map[string]interface{}); ok {
+				if id, ok := meta["id"].(string); ok {
+					changes = append(changes, fmt.Sprintf("Set the %s's metadata.id to %q and pointed the threats' capability references to %q at it", capType, id+"-capabilities", id))
+				}
+			}
 		}
 	}
 

@@ -3,7 +3,10 @@
 // CapabilityCatalog extraction
 //
 // Extracts a standalone CapabilityCatalog from a ThreatCatalog's
-// inline capabilities.
+// inline capabilities. The catalog gets its own id, the threat
+// catalog's id with "-capabilities" appended, so the two artifacts
+// don't share one. threat_catalog.cue points the threats' capability
+// references at that id.
 
 package migrate
 
@@ -15,12 +18,12 @@ capability_title:      string
 
 output: gemara.#CapabilityCatalog & {
 	metadata: {
-		if input.metadata.id != _|_ {id: input.metadata.id}
+		if input.metadata.id != _|_ {id: input.metadata.id + "-capabilities"}
 		if input.metadata.id == _|_ {id: "REPLACE ME"}
 		type: "CapabilityCatalog"
 		"gemara-version": target_gemara_version
-		if input.metadata.description != _|_ {description: input.metadata.description}
-		if input.metadata.description == _|_ {description: "REPLACE ME"}
+		if input.title != _|_ {description: "Capabilities extracted from " + input.title}
+		if input.title == _|_ {description: "REPLACE ME"}
 		if input.metadata.version != _|_ {version: input.metadata.version}
 		if input.metadata.author != _|_ {author: input.metadata.author}
 		if input.metadata.author == _|_ {
