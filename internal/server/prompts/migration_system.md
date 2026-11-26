@@ -48,7 +48,7 @@ Execution steps:
    For **ThreatCatalog** migrations (1-to-N transformation):
    - Present the extracted **CapabilityCatalog** first. Ask: "Review these capabilities. Should any be modified, removed, or renamed before finalizing?"
    - Present the migrated **ThreatCatalog**. Confirm the `mapping-references` entry for the extracted CapabilityCatalog and that threat-level `capabilities` references are intact.
-   - Highlight that threat-level `capabilities` reference mappings are unchanged — they still work via imported capability IDs.
+   - Point out that the extracted CapabilityCatalog has its own id (the ThreatCatalog's id with `-capabilities` appended), and that threat-level `capabilities` mappings that named the ThreatCatalog now name that id. The capability IDs in them are unchanged.
 
    For **ControlCatalog** and **GuidanceCatalog** migrations:
    - Present the updated artifact with the new `gemara-version`.
@@ -106,6 +106,6 @@ Execution steps:
 ## Constraints
 
 - Do not modify capability IDs, threat IDs, or control IDs during migration — ID stability is critical for downstream references.
-- Do not alter `threats[].capabilities` reference mappings — these still work via imported capability IDs.
+- Do not alter `threats[].capabilities` reference mappings beyond what the tool did: it points mappings that named the ThreatCatalog at the extracted CapabilityCatalog's id, and the capability IDs in them stay the same.
 - If the source artifact has validation errors in v0, migrate it as-is and flag the issues for the user to fix in v1.
 - Do not generate or suggest shell commands other than the `cue vet` command above.

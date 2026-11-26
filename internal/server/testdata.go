@@ -75,6 +75,71 @@ threats:
             remarks: Related to cap 1
 `
 
+// testV0ThreatCatalogWithExternalCapabilities has a threat that names both
+// its own inline capabilities and an external capability catalog.
+const testV0ThreatCatalogWithExternalCapabilities = `metadata:
+  id: TEST
+  type: ThreatCatalog
+  gemara-version: "0.20.0"
+  description: Test threat catalog
+  version: 1.0.0
+  author:
+    id: test
+    name: Test Author
+    type: Human
+  mapping-references:
+    - id: EXT-CAPS
+      title: External Capabilities
+      version: "1.0"
+      description: External capability catalog
+title: Test Security Threat Catalog
+capabilities:
+  - id: TEST.CAP01
+    title: Capability One
+    description: First capability
+threats:
+  - id: TEST.THR01
+    title: Threat One
+    description: First threat
+    capabilities:
+      - reference-id: TEST
+        entries:
+          - reference-id: TEST.CAP01
+            remarks: Related to cap 1
+      - reference-id: EXT-CAPS
+        entries:
+          - reference-id: EXT.CAP09
+`
+
+// testV0ThreatCatalogWithoutCapabilities has a threat that cites the
+// catalog's own id, but no inline capabilities to extract.
+const testV0ThreatCatalogWithoutCapabilities = `metadata:
+  id: TEST
+  type: ThreatCatalog
+  gemara-version: "0.20.0"
+  description: Test threat catalog
+  version: 1.0.0
+  author:
+    id: test
+    name: Test Author
+    type: Human
+  mapping-references:
+    - id: REF1
+      title: Reference 1
+      version: "1.0"
+      description: Test reference
+title: Test Security Threat Catalog
+threats:
+  - id: TEST.THR01
+    title: Threat One
+    description: First threat
+    capabilities:
+      - reference-id: TEST
+        entries:
+          - reference-id: TEST.CAP01
+            remarks: Related to cap 1
+`
+
 const testV0ThreatCatalogWithImportedThreats = `metadata:
   id: TEST
   type: ThreatCatalog

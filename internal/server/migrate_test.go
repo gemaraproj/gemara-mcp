@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gemara "github.com/gemaraproj/go-gemara"
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -405,6 +406,119 @@ controls:
 			if tt.validateOutput != nil {
 				tt.validateOutput(t, output)
 			}
+		})
+	}
+}
+
+// The extracted CapabilityCatalog gets its own id, so it doesn't share one
+// with the ThreatCatalog, and the threats' references to their own inline
+// capabilities follow it. References to other catalogs stay as they are.
+func TestMigrateThreatCatalogGivesCapabilityCatalogItsOwnID(t *testing.T) {
+	_, output, err := MigrateGemaraArtifact(context.Background(), nil, InputMigrateGemaraArtifact{
+		ArtifactContent: testV0ThreatCatalogWithExternalCapabilities,
+	})
+	require.NoError(t, err)
+	require.Len(t, output.Artifacts, 2)
+
+	var tc, cc struct {
+		Metadata struct {
+			ID                string `yaml:"id"`
+			Description       string `yaml:"description"`
+			MappingReferences []struct {
+				ID string `yaml:"id"`
+			} `yaml:"mapping-references"`
+		} `yaml:"metadata"`
+		Threats []struct {
+			Capabilities []struct {
+				ReferenceID string `yaml:"reference-id"`
+				Entries     []struct {
+					ReferenceID string `yaml:"reference-id"`
+					Remarks     string `yaml:"remarks"`
+				} `yaml:"entries"`
+			} `yaml:"capabilities"`
+		} `yaml:"threats"`
+	}
+	require.NoError(t, yaml.Unmarshal([]byte(output.Artifacts[0].Content), &tc))
+	require.NoError(t, yaml.Unmarshal([]byte(output.Artifacts[1].Content), &cc))
+
+	assert.Equal(t, "TEST", tc.Metadata.ID)
+	assert.Equal(t, "TEST-capabilities", cc.Metadata.ID)
+	assert.Equal(t, "Capabilities extracted from Test Security Threat Catalog", cc.Metadata.Description)
+
+	var refs []string
+	for _, r := range tc.Metadata.MappingReferences {
+		refs = append(refs, r.ID)
+	}
+	assert.ElementsMatch(t, []string{"EXT-CAPS", "TEST-capabilities"}, refs)
+
+	require.Len(t, tc.Threats, 1)
+	caps := tc.Threats[0].Capabilities
+	require.Len(t, caps, 2)
+	assert.Equal(t, "TEST-capabilities", caps[0].ReferenceID)
+	require.Len(t, caps[0].Entries, 1)
+	assert.Equal(t, "TEST.CAP01", caps[0].Entries[0].ReferenceID)
+	assert.Equal(t, "Related to cap 1", caps[0].Entries[0].Remarks)
+	assert.Equal(t, "EXT-CAPS", caps[1].ReferenceID)
+	assert.Equal(t, "EXT.CAP09", caps[1].Entries[0].ReferenceID)
+
+	assert.Contains(t, output.Changes, `Set the CapabilityCatalog's metadata.id to "TEST-capabilities" and pointed the threats' capability references to "TEST" at it`)
+}
+
+// With no inline capabilities (missing, null, or an empty list), no
+// CapabilityCatalog is extracted, so nothing may point at
+// <id>-capabilities. The threats keep their reference-id and no
+// mapping-references entry is added.
+func TestMigrateThreatCatalogWithoutCapabilitiesKeepsReferences(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{"no capabilities key", testV0ThreatCatalogWithoutCapabilities},
+		{"empty capabilities list", testV0ThreatCatalogWithoutCapabilities + "capabilities: []\n"},
+		{"null capabilities", testV0ThreatCatalogWithoutCapabilities + "capabilities:\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, output, err := MigrateGemaraArtifact(context.Background(), nil, InputMigrateGemaraArtifact{
+				ArtifactContent: tt.content,
+			})
+			require.NoError(t, err)
+			require.Len(t, output.Artifacts, 1, "no CapabilityCatalog is extracted")
+			assert.NotContains(t, output.Artifacts[0].Content, "-capabilities")
+			for _, c := range output.Changes {
+				assert.NotContains(t, c, "-capabilities")
+			}
+
+			var tc struct {
+				Metadata struct {
+					MappingReferences []struct {
+						ID string `yaml:"id"`
+					} `yaml:"mapping-references"`
+				} `yaml:"metadata"`
+				Threats []struct {
+					Capabilities []struct {
+						ReferenceID string `yaml:"reference-id"`
+						Entries     []struct {
+							ReferenceID string `yaml:"reference-id"`
+						} `yaml:"entries"`
+					} `yaml:"capabilities"`
+				} `yaml:"threats"`
+			}
+			require.NoError(t, yaml.Unmarshal([]byte(output.Artifacts[0].Content), &tc))
+
+			var refs []string
+			for _, r := range tc.Metadata.MappingReferences {
+				refs = append(refs, r.ID)
+			}
+			assert.Equal(t, []string{"REF1"}, refs, "no entry added for a CapabilityCatalog")
+
+			require.Len(t, tc.Threats, 1)
+			caps := tc.Threats[0].Capabilities
+			require.Len(t, caps, 1)
+			assert.Equal(t, "TEST", caps[0].ReferenceID)
+			require.Len(t, caps[0].Entries, 1)
+			assert.Equal(t, "TEST.CAP01", caps[0].Entries[0].ReferenceID)
 		})
 	}
 }

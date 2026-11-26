@@ -173,9 +173,14 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 		capTitle = title + " - Capabilities"
 	}
 
+	// threat_catalog.cue adds the CapabilityCatalog's mapping-references entry
+	// and repoints the threats' capability references at it only when the
+	// block below extracts one.
+	inlineCaps, _ := root["capabilities"].([]interface{})
 	tcExtras := map[string]interface{}{
 		"target_gemara_version":    DefaultGemaraVersion,
 		"capability_catalog_title": capTitle,
+		"capabilities_extracted":   len(inlineCaps) > 0,
 	}
 	tcYAML, err := cueMigrate(cueCtx, threatMigrationCUE, root, tcExtras)
 	if err != nil {
@@ -213,6 +218,11 @@ func migrateThreatCatalog(cueCtx *cue.Context, root map[string]interface{}, sour
 				fmt.Sprintf("Removed inline 'capabilities' from %s", tcType),
 				fmt.Sprintf("Added mapping-references entry for extracted %s", capType),
 			)
+			if meta, ok := root["metadata"].(map[string]interface{}); ok {
+				if id, ok := meta["id"].(string); ok {
+					changes = append(changes, fmt.Sprintf("Set the %s's metadata.id to %q and pointed the threats' capability references to %q at it", capType, id+"-capabilities", id))
+				}
+			}
 		}
 	}
 

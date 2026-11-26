@@ -17,8 +17,15 @@ import (
 input: {...}
 target_gemara_version:   string
 capability_catalog_title: string | *""
+capabilities_extracted:   bool | *false
 
 output: gemara.#ThreatCatalog & {
+	// The extracted CapabilityCatalog's id (see capability_catalog.cue).
+	let _capID = [if input.metadata.id != _|_ {input.metadata.id + "-capabilities"}, "REPLACE ME"][0]
+	// migrate.go sets capabilities_extracted when it extracts a
+	// CapabilityCatalog, so only then is there a catalog to point at.
+	let _extracted = capabilities_extracted
+
 	metadata: {
 		if input.metadata.id != _|_ {id: input.metadata.id}
 		if input.metadata.id == _|_ {id: "REPLACE ME"}
@@ -37,15 +44,14 @@ output: gemara.#ThreatCatalog & {
 		}
 
 		let _capRef = [{
-			if input.metadata.id != _|_ {id: input.metadata.id}
-			if input.metadata.id == _|_ {id: "REPLACE ME"}
+			id:          _capID
 			title:       capability_catalog_title
 			if input.metadata.version != _|_ {version: input.metadata.version}
 			if input.metadata.version == _|_ {version: "REPLACE ME"}
 			description: "Capabilities extracted from " + input.title
 		}]
 
-		if input.capabilities != _|_ {
+		if _extracted {
 			if input.metadata."mapping-references" != _|_ {
 				"mapping-references": list.Concat([input.metadata."mapping-references", _capRef])
 			}
@@ -54,7 +60,7 @@ output: gemara.#ThreatCatalog & {
 			}
 		}
 
-		if input.capabilities == _|_ {
+		if !_extracted {
 			if input.metadata."mapping-references" != _|_ {
 				"mapping-references": input.metadata."mapping-references"
 			}
@@ -86,7 +92,20 @@ output: gemara.#ThreatCatalog & {
 				if t.description != _|_ {description: t.description}
 				if t.description == _|_ {description: "REPLACE ME"}
 				group: "REPLACE ME"
-				if t.capabilities != _|_ {capabilities: t.capabilities}
+				// A v0 threat names its catalog's inline capabilities by the
+				// catalog's own id. Those are in the extracted CapabilityCatalog
+				// now, so point such mappings at its id. Mappings to any other
+				// catalog, or when nothing was extracted, are kept as they are.
+				if t.capabilities != _|_ {
+					capabilities: [for m in t.capabilities {
+						for k, v in m if k != "reference-id" {(k): v}
+						if _extracted && input.metadata.id != _|_ {
+							if m."reference-id" == input.metadata.id {"reference-id": _capID}
+							if m."reference-id" != input.metadata.id {"reference-id": m."reference-id"}
+						}
+						if !_extracted || input.metadata.id == _|_ {"reference-id": m."reference-id"}
+					}]
+				}
 				if t.capabilities == _|_ {
 					capabilities: [{
 						"reference-id": "REPLACE ME"
