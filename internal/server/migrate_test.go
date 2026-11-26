@@ -463,3 +463,62 @@ func TestMigrateThreatCatalogGivesCapabilityCatalogItsOwnID(t *testing.T) {
 
 	assert.Contains(t, output.Changes, `Set the CapabilityCatalog's metadata.id to "TEST-capabilities" and pointed the threats' capability references to "TEST" at it`)
 }
+
+// With no inline capabilities (missing, null, or an empty list), no
+// CapabilityCatalog is extracted, so nothing may point at
+// <id>-capabilities. The threats keep their reference-id and no
+// mapping-references entry is added.
+func TestMigrateThreatCatalogWithoutCapabilitiesKeepsReferences(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{"no capabilities key", testV0ThreatCatalogWithoutCapabilities},
+		{"empty capabilities list", testV0ThreatCatalogWithoutCapabilities + "capabilities: []\n"},
+		{"null capabilities", testV0ThreatCatalogWithoutCapabilities + "capabilities:\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, output, err := MigrateGemaraArtifact(context.Background(), nil, InputMigrateGemaraArtifact{
+				ArtifactContent: tt.content,
+			})
+			require.NoError(t, err)
+			require.Len(t, output.Artifacts, 1, "no CapabilityCatalog is extracted")
+			assert.NotContains(t, output.Artifacts[0].Content, "-capabilities")
+			for _, c := range output.Changes {
+				assert.NotContains(t, c, "-capabilities")
+			}
+
+			var tc struct {
+				Metadata struct {
+					MappingReferences []struct {
+						ID string `yaml:"id"`
+					} `yaml:"mapping-references"`
+				} `yaml:"metadata"`
+				Threats []struct {
+					Capabilities []struct {
+						ReferenceID string `yaml:"reference-id"`
+						Entries     []struct {
+							ReferenceID string `yaml:"reference-id"`
+						} `yaml:"entries"`
+					} `yaml:"capabilities"`
+				} `yaml:"threats"`
+			}
+			require.NoError(t, yaml.Unmarshal([]byte(output.Artifacts[0].Content), &tc))
+
+			var refs []string
+			for _, r := range tc.Metadata.MappingReferences {
+				refs = append(refs, r.ID)
+			}
+			assert.Equal(t, []string{"REF1"}, refs, "no entry added for a CapabilityCatalog")
+
+			require.Len(t, tc.Threats, 1)
+			caps := tc.Threats[0].Capabilities
+			require.Len(t, caps, 1)
+			assert.Equal(t, "TEST", caps[0].ReferenceID)
+			require.Len(t, caps[0].Entries, 1)
+			assert.Equal(t, "TEST.CAP01", caps[0].Entries[0].ReferenceID)
+		})
+	}
+}

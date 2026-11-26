@@ -111,6 +111,35 @@ threats:
           - reference-id: EXT.CAP09
 `
 
+// testV0ThreatCatalogWithoutCapabilities has a threat that cites the
+// catalog's own id, but no inline capabilities to extract.
+const testV0ThreatCatalogWithoutCapabilities = `metadata:
+  id: TEST
+  type: ThreatCatalog
+  gemara-version: "0.20.0"
+  description: Test threat catalog
+  version: 1.0.0
+  author:
+    id: test
+    name: Test Author
+    type: Human
+  mapping-references:
+    - id: REF1
+      title: Reference 1
+      version: "1.0"
+      description: Test reference
+title: Test Security Threat Catalog
+threats:
+  - id: TEST.THR01
+    title: Threat One
+    description: First threat
+    capabilities:
+      - reference-id: TEST
+        entries:
+          - reference-id: TEST.CAP01
+            remarks: Related to cap 1
+`
+
 const testV0ThreatCatalogWithImportedThreats = `metadata:
   id: TEST
   type: ThreatCatalog
